@@ -50,7 +50,7 @@ defmodule Aurora.MixProject do
         "GitHub" => "https://github.com/lorenzo-sf/aurora",
         "Docs" => "https://hexdocs.pm/aurora"
       },
-      files: ~w(lib c_src priv mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib priv mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 end

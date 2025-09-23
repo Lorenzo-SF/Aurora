@@ -20,7 +20,7 @@ Aurora está diseñado con **simplicidad en mente**:
 # En tu mix.exs, agrega esta línea mágica:
 def deps do
   [
-    {:aurora, path: "../aurora"}
+    {:aurora, "~> 1.0"}
   ]
 end
 ```
