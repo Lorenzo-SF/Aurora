@@ -31,6 +31,8 @@ defmodule Aurora do
   - `Aurora.Color` - Procesamiento y aplicación de colores
   - `Aurora.Effects` - Aplicación de efectos ANSI
   - `Aurora.Convert` - Utilidades de conversión y transformación
+  - `Aurora.Ensure` - Funciones para garantizar tipos de datos específicos
+  - `Aurora.Normalize` - Normalización de texto y estructuras de datos
   """
 
   alias Aurora.{Color, Convert, Effects, Format}

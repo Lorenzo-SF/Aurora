@@ -45,7 +45,7 @@ defmodule Aurora.Format do
   - `:center_block` - Centrado en bloque para tablas
   """
 
-  alias Aurora.{Color, Convert}
+  alias Aurora.{Color, Convert, Ensure}
   alias Aurora.Structs.{ChunkText, FormatInfo}
 
   @tab_size 4
@@ -102,7 +102,7 @@ defmodule Aurora.Format do
 
   defp apply_indentation(chunks, _manual_tabs) do
     Enum.map(chunks, fn chunk ->
-      chunk = Convert.ensure_chunk_text(chunk)
+      chunk = Ensure.ensure_chunk_text(chunk)
 
       color_name =
         case chunk.color do
@@ -231,6 +231,18 @@ defmodule Aurora.Format do
   def clean_ansi(str) do
     Regex.replace(~r/\e\[[\d;?]*[a-zA-Z]/, str, "")
     |> String.replace(~r/\eP.*?\e\\/, "")
+  end
+
+  def visible_length(str) when is_binary(str) do
+    str
+    |> String.replace(~r/\e\[[0-9;]*m/, "")
+    |> String.length()
+  end
+
+  def remove_diacritics(text) do
+    text
+    |> String.normalize(:nfd)
+    |> String.replace(~r/\p{Mn}/u, "")
   end
 
   @doc """

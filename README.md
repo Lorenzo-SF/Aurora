@@ -74,7 +74,7 @@ Ver [configuración completa](#-configuración-personalizada-de-colores) más ab
 | `Aurora.colors/0`      | Listar colores      | `Aurora.colors()`                         |
 | `Aurora.effects/0`     | Listar efectos      | `Aurora.effects()`                        |
 
-**💡 Para funciones avanzadas** (tablas, badges, divisores, encabezados, efectos específicos, etc.) usar directamente los módulos especializados: `Aurora.Format`, `Aurora.Color`, `Aurora.Effects`, `Aurora.Convert`.
+**💡 Para funciones avanzadas** (tablas, badges, divisores, encabezados, efectos específicos, etc.) usar directamente los módulos especializados: `Aurora.Format`, `Aurora.Color`, `Aurora.Effects`, `Aurora.Convert`, `Aurora.Ensure`, `Aurora.Normalize`.
 
 ## 🎯 Uso Básico (para el 90% de casos)
 
@@ -295,6 +295,17 @@ IO.inspect(info_color)
 
 Para casos donde necesitas control total, usa los módulos especializados:
 
+### Tabla de Referencia Rápida - Módulos Especializados
+
+| Módulo              | Funciones principales                                   | Uso principal                            |
+| ------------------- | ------------------------------------------------------- | ---------------------------------------- |
+| `Aurora.Format`     | `format/1`, `clean_ansi/1`, `pretty_json/1`            | Formateo de texto y estructuras          |
+| `Aurora.Color`      | `get_color_info/1`, `apply_to_chunk/1`, `gradient/3`   | Manejo de colores y gradientes           |
+| `Aurora.Effects`    | `apply_effect/2`, `apply_multiple_effects/2`           | Aplicación de efectos ANSI               |
+| `Aurora.Convert`    | `to_chunk/1`, `table?/1`, `normalize_table/1`          | Conversión y transformación de datos     |
+| `Aurora.Ensure`     | `ensure_string/1`, `ensure_integer/1`, `ensure_list/1` | Garantía de tipos con valores seguros    |
+| `Aurora.Normalize`  | `normalize_text/2`, `normalize_messages/1`             | Normalización de texto y estructuras     |
+
 ### `Aurora.Format` - Control total del formateo
 
 ```elixir
@@ -353,6 +364,61 @@ chunk = Aurora.Convert.to_chunk({"texto", :primary})
 
 # Verificar si datos forman tabla
 es_tabla = Aurora.Convert.table?([[1, 2], [3, 4]])
+
+# Normalizar tabla con alineación automática
+table_data = [["ID", "Nombre"], ["1", "Juan"], ["2", "María"]]
+normalized = Aurora.Convert.normalize_table(table_data)
+
+# Manipulación de claves en mapas
+data = %{"firstName" => "Juan", "lastName" => "Pérez"}
+atom_keys = Aurora.Convert.atomize_keys(data)  # %{firstName: "Juan", lastName: "Pérez"}
+string_keys = Aurora.Convert.stringify_keys(atom_keys)  # Vuelta a strings
+
+# Conversión de tipos con validación
+Aurora.Convert.cast("123", :integer)  # 123
+Aurora.Convert.cast("true", :boolean)  # true
+Aurora.Convert.cast("texto", :atom)    # :texto
+```
+
+### `Aurora.Ensure` - Garantía de tipos
+
+```elixir
+# Asegurar tipos específicos con valores por defecto seguros
+Aurora.Ensure.ensure_string(nil)        # ""
+Aurora.Ensure.ensure_string(123)        # "123"
+Aurora.Ensure.ensure_integer("42")      # 42
+Aurora.Ensure.ensure_integer("invalid") # 0
+
+# Asegurar listas y estructuras
+Aurora.Ensure.ensure_list(nil)          # []
+Aurora.Ensure.ensure_list("texto")      # ["texto"]
+Aurora.Ensure.ensure_map([a: 1, b: 2])  # %{a: 1, b: 2}
+
+# Asegurar chunks de texto válidos
+chunk = Aurora.Ensure.ensure_chunk_text("texto")
+chunk = Aurora.Ensure.ensure_chunk_text({"texto", :primary})
+
+# Conversión de listas con función de transformación
+Aurora.Ensure.ensure_list_of(["1", "2", "3"], :ensure_integer)  # [1, 2, 3]
+```
+
+### `Aurora.Normalize` - Normalización de datos
+
+```elixir
+# Normalización de texto
+Aurora.Normalize.normalize_text("ÑOÑO", :lower)  # "nono" (sin diacríticos)
+Aurora.Normalize.normalize_text("café", :upper)  # "CAFE"
+
+# Normalización de mensajes a chunks
+messages = [{"Error", :error}, {"Info", :info}, "Texto simple"]
+chunks = Aurora.Normalize.normalize_messages(messages)
+# => [%ChunkText{text: "Error", color: %ColorInfo{...}}, ...]
+
+# Normalización de tablas con padding automático
+table = [["ID", "Name"], ["1", "John"], ["2", "Jane"]]
+normalized_table = Aurora.Normalize.normalize_table(table)
+# Asegura que todas las filas tengan el mismo número de columnas
+# y aplica padding para alineación uniforme
 ```
 
 ## 🧪 Estructuras de Datos
