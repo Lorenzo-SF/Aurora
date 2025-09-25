@@ -45,7 +45,7 @@ defmodule Aurora.Format do
   - `:center_block` - Centrado en bloque para tablas
   """
 
-  alias Aurora.{Color, Convert, Ensure}
+  alias Aurora.{Color, Convert, Effects, Ensure}
   alias Aurora.Structs.{ChunkText, FormatInfo}
 
   @tab_size 4
@@ -85,7 +85,9 @@ defmodule Aurora.Format do
         |> align_text(align)
       end
 
-    colored_chunks = Color.apply_to_chunk(formatted_chunks)
+    # Aplicar efectos antes que colores
+    effects_applied_chunks = apply_effects_to_chunks(formatted_chunks)
+    colored_chunks = Color.apply_to_chunk(effects_applied_chunks)
 
     output =
       colored_chunks
@@ -233,12 +235,50 @@ defmodule Aurora.Format do
     |> String.replace(~r/\eP.*?\e\\/, "")
   end
 
+  @doc """
+  Calcula la longitud visible de una cadena eliminando códigos ANSI.
+
+  ## Parámetros
+
+  - `str` - Cadena de texto que puede contener códigos ANSI
+
+  ## Ejemplos
+
+      iex> Aurora.Format.visible_length("\\e[1mHola\\e[0m")
+      4
+
+      iex> Aurora.Format.visible_length("texto normal")
+      12
+  """
+  @spec visible_length(String.t()) :: non_neg_integer()
   def visible_length(str) when is_binary(str) do
     str
     |> String.replace(~r/\e\[[0-9;]*m/, "")
     |> String.length()
   end
 
+  @doc """
+  Elimina diacríticos (tildes, acentos) de un texto.
+
+  Utiliza normalización NFD para separar los caracteres base de los diacríticos
+  y luego elimina los modificadores diacríticos.
+
+  ## Parámetros
+
+  - `text` - Texto del que eliminar los diacríticos
+
+  ## Ejemplos
+
+      iex> Aurora.Format.remove_diacritics("café")
+      "cafe"
+
+      iex> Aurora.Format.remove_diacritics("niño")
+      "nino"
+
+      iex> Aurora.Format.remove_diacritics("resumé")
+      "resume"
+  """
+  @spec remove_diacritics(String.t()) :: String.t()
   def remove_diacritics(text) do
     text
     |> String.normalize(:nfd)
@@ -279,6 +319,21 @@ defmodule Aurora.Format do
     case :io.columns() do
       {:ok, cols} -> cols
       _ -> 80
+    end
+  end
+
+  # Aplica efectos a una lista de chunks o tabla de chunks.
+  # Procesa cada ChunkText aplicando sus efectos si los tiene definidos.
+  # Para tablas (listas de listas), aplica el procesamiento recursivamente.
+  @spec apply_effects_to_chunks([ChunkText.t()] | [[ChunkText.t()]]) ::
+          [ChunkText.t()] | [[ChunkText.t()]]
+  defp apply_effects_to_chunks(chunks) when is_list(chunks) do
+    if Convert.table?(chunks) do
+      # Es una tabla, procesar cada fila
+      Enum.map(chunks, &apply_effects_to_chunks/1)
+    else
+      # Es una lista simple de chunks
+      Enum.map(chunks, &Effects.apply_chunk_effects/1)
     end
   end
 end

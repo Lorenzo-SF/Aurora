@@ -5,6 +5,9 @@ defmodule Aurora.Effects do
   Este módulo proporciona funcionalidades para aplicar diferentes tipos de efectos
   como negrita, cursiva, subrayado, etc. usando códigos de escape ANSI.
 
+  Puede trabajar con texto simple y aplicar efectos basados en EffectInfo,
+  o procesar ChunkText que ya contiene efectos.
+
   ## Efectos soportados
 
   - `:bold` - Texto en negrita
@@ -22,7 +25,10 @@ defmodule Aurora.Effects do
       "\\e[1mtexto\\e[0m"
 
       iex> Aurora.Effects.apply_multiple_effects("texto", [:bold, :underline])
+      "\\e[1m\\e[4mtexto\\e[0m"
   """
+
+  alias Aurora.Structs.{ChunkText, EffectInfo}
 
   @reset "\e[0m"
 
@@ -138,5 +144,67 @@ defmodule Aurora.Effects do
   @spec valid_effect?(atom()) :: boolean()
   def valid_effect?(effect) do
     Map.has_key?(@effects, effect)
+  end
+
+  @doc """
+  Aplica efectos a un texto basado en una estructura EffectInfo.
+
+  ## Parámetros
+
+  - `text` - El texto al que aplicar los efectos
+  - `effect_info` - Estructura EffectInfo con los efectos activados
+
+  ## Ejemplos
+
+      iex> effects = %Aurora.Structs.EffectInfo{bold: true}
+      iex> Aurora.Effects.apply_effect_info("texto", effects)
+      "\\e[1mtexto\\e[0m"
+
+      iex> no_effects = %Aurora.Structs.EffectInfo{}
+      iex> Aurora.Effects.apply_effect_info("texto", no_effects)
+      "texto"
+  """
+  @spec apply_effect_info(String.t(), EffectInfo.t()) :: String.t()
+  def apply_effect_info(text, %EffectInfo{} = effect_info) do
+    effects_to_apply = extract_active_effects(effect_info)
+    apply_multiple_effects(text, effects_to_apply)
+  end
+
+  @doc """
+  Aplica efectos a un ChunkText que ya contiene información de efectos.
+
+  Retorna un ChunkText actualizado con el texto formateado.
+
+  ## Parámetros
+
+  - `chunk` - ChunkText con texto y efectos
+
+  ## Ejemplos
+
+      iex> effects = %Aurora.Structs.EffectInfo{bold: true}
+      iex> chunk = %Aurora.Structs.ChunkText{text: "texto", effects: effects}
+      iex> result = Aurora.Effects.apply_chunk_effects(chunk)
+      iex> result.text
+      "\\e[1mtexto\\e[0m"
+  """
+  @spec apply_chunk_effects(ChunkText.t()) :: ChunkText.t()
+  def apply_chunk_effects(%ChunkText{effects: nil} = chunk) do
+    # Sin efectos, devolver el chunk sin modificar
+    chunk
+  end
+
+  def apply_chunk_effects(%ChunkText{text: text, effects: effect_info} = chunk) do
+    formatted_text = apply_effect_info(text, effect_info)
+    %{chunk | text: formatted_text}
+  end
+
+  # Función privada para extraer efectos activos de EffectInfo
+  @spec extract_active_effects(EffectInfo.t()) :: [atom()]
+  defp extract_active_effects(%EffectInfo{} = effect_info) do
+    effect_info
+    |> Map.from_struct()
+    |> Enum.filter(fn {_key, value} -> value == true end)
+    |> Enum.map(fn {key, _value} -> key end)
+    |> Enum.filter(fn key -> Map.has_key?(@effects, key) end)
   end
 end

@@ -3,6 +3,7 @@ defmodule Aurora.EffectsTest do
   doctest Aurora.Effects
 
   alias Aurora.Effects
+  alias Aurora.Structs.{ChunkText, EffectInfo}
 
   describe "apply_effect/2" do
     test "applies bold effect" do
@@ -191,6 +192,154 @@ defmodule Aurora.EffectsTest do
       refute Effects.valid_effect?("bold")
       refute Effects.valid_effect?(123)
       refute Effects.valid_effect?(nil)
+    end
+  end
+
+  describe "apply_effect_info/2" do
+    test "applies single effect from EffectInfo" do
+      effect_info = %EffectInfo{bold: true}
+      result = Effects.apply_effect_info("text", effect_info)
+      assert result == "\e[1mtext\e[0m"
+    end
+
+    test "applies multiple effects from EffectInfo" do
+      effect_info = %EffectInfo{bold: true, italic: true, underline: true}
+      result = Effects.apply_effect_info("text", effect_info)
+
+      # Verificar que los códigos estén presentes (orden puede variar)
+      # bold
+      assert String.contains?(result, "\e[1m")
+      # italic
+      assert String.contains?(result, "\e[3m")
+      # underline
+      assert String.contains?(result, "\e[4m")
+      assert String.ends_with?(result, "text\e[0m")
+      assert String.starts_with?(result, "\e[")
+    end
+
+    test "applies no effects from EffectInfo with all false" do
+      effect_info = %EffectInfo{}
+      result = Effects.apply_effect_info("text", effect_info)
+      assert result == "text"
+    end
+
+    test "ignores unsupported effects" do
+      # Test with EffectInfo that has all supported effects
+      effect_info = %EffectInfo{
+        bold: true,
+        dim: false,
+        italic: true,
+        underline: false,
+        blink: false,
+        reverse: false,
+        hidden: false,
+        strikethrough: false
+      }
+
+      result = Effects.apply_effect_info("text", effect_info)
+
+      # Verificar que los códigos correctos estén presentes
+      # bold
+      assert String.contains?(result, "\e[1m")
+      # italic
+      assert String.contains?(result, "\e[3m")
+      assert String.ends_with?(result, "text\e[0m")
+      # Verificar que códigos no deseados NO estén presentes
+      # dim
+      refute String.contains?(result, "\e[2m")
+      # underline
+      refute String.contains?(result, "\e[4m")
+    end
+
+    test "handles all effects enabled" do
+      effect_info = %EffectInfo{
+        bold: true,
+        dim: true,
+        italic: true,
+        underline: true,
+        blink: true,
+        reverse: true,
+        hidden: true,
+        strikethrough: true
+      }
+
+      result = Effects.apply_effect_info("text", effect_info)
+
+      # Verify that all effect codes are present
+      # bold
+      assert String.contains?(result, "\e[1m")
+      # dim
+      assert String.contains?(result, "\e[2m")
+      # italic
+      assert String.contains?(result, "\e[3m")
+      # underline
+      assert String.contains?(result, "\e[4m")
+      # blink
+      assert String.contains?(result, "\e[5m")
+      # reverse
+      assert String.contains?(result, "\e[7m")
+      # hidden
+      assert String.contains?(result, "\e[8m")
+      # strikethrough
+      assert String.contains?(result, "\e[9m")
+      assert String.ends_with?(result, "text\e[0m")
+    end
+  end
+
+  describe "apply_chunk_effects/1" do
+    test "applies effects to ChunkText with effects" do
+      effect_info = %EffectInfo{bold: true, italic: true}
+      chunk = %ChunkText{text: "test text", effects: effect_info}
+      result = Effects.apply_chunk_effects(chunk)
+
+      # Verificar efectos aplicados (orden puede variar)
+      # bold
+      assert String.contains?(result.text, "\e[1m")
+      # italic
+      assert String.contains?(result.text, "\e[3m")
+      assert String.ends_with?(result.text, "test text\e[0m")
+      # Original effects preserved
+      assert result.effects == effect_info
+    end
+
+    test "returns unchanged ChunkText when no effects" do
+      chunk = %ChunkText{text: "test text", effects: nil}
+      result = Effects.apply_chunk_effects(chunk)
+
+      assert result.text == "test text"
+      assert result.effects == nil
+    end
+
+    test "handles ChunkText with empty EffectInfo" do
+      effect_info = %EffectInfo{}
+      chunk = %ChunkText{text: "test text", effects: effect_info}
+      result = Effects.apply_chunk_effects(chunk)
+
+      # No effects applied
+      assert result.text == "test text"
+      assert result.effects == effect_info
+    end
+
+    test "preserves other ChunkText fields" do
+      effect_info = %EffectInfo{bold: true}
+      color_info = Aurora.Color.get_color_info(:primary)
+      chunk = %ChunkText{text: "test", color: color_info, effects: effect_info}
+      result = Effects.apply_chunk_effects(chunk)
+
+      # Color preserved
+      assert result.color == color_info
+      # Effects preserved
+      assert result.effects == effect_info
+      # Bold effect applied
+      assert String.starts_with?(result.text, "\e[1m")
+    end
+
+    test "handles empty text with effects" do
+      effect_info = %EffectInfo{underline: true}
+      chunk = %ChunkText{text: "", effects: effect_info}
+      result = Effects.apply_chunk_effects(chunk)
+
+      assert result.text == "\e[4m\e[0m"
     end
   end
 end

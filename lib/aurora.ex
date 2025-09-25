@@ -49,6 +49,7 @@ defmodule Aurora do
       ...> ]
       iex> Aurora.format_chunks(chunks)
   """
+  @spec format_chunks([Aurora.Structs.ChunkText.t()], keyword()) :: String.t()
   def format_chunks(chunks, opts \\ []) do
     format_info = struct(FormatInfo, [{:chunks, chunks} | opts])
     Format.format(format_info)
@@ -81,6 +82,7 @@ defmodule Aurora do
 
       iex> Aurora.format(["Línea 1", "Línea 2"], color: :info)
   """
+  @spec format(String.t() | [String.t()] | FormatInfo.t(), keyword()) :: String.t()
   def format(text, opts \\ [])
 
   def format(%FormatInfo{} = format_info, _opts) do
@@ -141,6 +143,7 @@ defmodule Aurora do
       iex> Aurora.chunk("texto", :primary)
       iex> Aurora.chunk("mensaje")
   """
+  @spec chunk(String.t(), atom() | String.t() | nil) :: Aurora.Structs.ChunkText.t()
   def chunk(text, color \\ nil) do
     if color do
       Convert.to_chunk({text, color})
@@ -159,6 +162,7 @@ defmodule Aurora do
       ...>   {" mensaje", :warning}
       ...> ])
   """
+  @spec chunks([{String.t(), atom() | String.t()}]) :: [Aurora.Structs.ChunkText.t()]
   def chunks(list) when is_list(list) do
     Enum.map(list, &Convert.to_chunk/1)
   end
@@ -171,6 +175,7 @@ defmodule Aurora do
       iex> Aurora.colorize("texto", :primary)
       iex> Aurora.colorize("error", "#FF0000")
   """
+  @spec colorize(String.t(), atom() | String.t()) :: String.t()
   def colorize(text, color) do
     color_info = Color.resolve_color(color)
     Color.apply_color(text, color_info)
@@ -181,9 +186,10 @@ defmodule Aurora do
 
   ## Ejemplos
 
-      iex> Aurora.stylize("texto", [:bold, :underline])
-      iex> Aurora.stylize("dim", :dim)
+      iex> Aurora.stylize("texto", [:bold, :underline]) |> IO.puts
+      iex> Aurora.stylize("dim", :dim) |> IO.puts
   """
+  @spec stylize(String.t(), [atom()] | atom()) :: String.t()
   def stylize(text, effects) when is_list(effects) do
     Effects.apply_multiple_effects(text, effects)
   end
@@ -199,6 +205,7 @@ defmodule Aurora do
 
       iex> Aurora.gradient("#FF0000", "#0000FF")
   """
+  @spec gradient(String.t(), String.t(), integer()) :: [String.t()]
   def gradient(start_color, end_color, steps \\ 6) do
     if steps == 6 do
       Color.generate_gradient_between(start_color, end_color)
@@ -217,6 +224,7 @@ defmodule Aurora do
       iex> Aurora.clean("\\e[1mTexto\\e[0m")
       "Texto"
   """
+  @spec clean(String.t()) :: String.t()
   defdelegate clean(text), to: Format, as: :clean_ansi
 
   @doc """
@@ -227,6 +235,7 @@ defmodule Aurora do
       iex> Aurora.text_length("\\e[1mHola\\e[0m")
       4
   """
+  @spec text_length(String.t()) :: non_neg_integer()
   def text_length(text) do
     Format.clean_ansi(text) |> String.length()
   end
@@ -267,6 +276,7 @@ defmodule Aurora do
       iex> data4 = %{msg: "hello"}
       iex> Aurora.json(data4, indent: true)
   """
+  @spec json(String.t() | map() | list() | any(), keyword()) :: String.t()
   def json(data, opts \\ []) do
     color = Keyword.get(opts, :color, :info)
     compact = Keyword.get(opts, :compact, false)
@@ -304,6 +314,7 @@ defmodule Aurora do
   @doc """
   Lista todos los colores disponibles.
   """
+  @spec colors() :: [atom()]
   def colors do
     Color.colors() |> Map.keys()
   end
@@ -311,5 +322,6 @@ defmodule Aurora do
   @doc """
   Lista todos los efectos disponibles.
   """
+  @spec effects() :: [atom()]
   defdelegate effects(), to: Effects, as: :available_effects
 end

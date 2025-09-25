@@ -353,6 +353,17 @@ texto = Aurora.Effects.apply_multiple_effects("texto", [:bold, :italic])
 
 # Aplicar efectos desde lista de opciones
 texto = Aurora.Effects.apply_effects("texto", [bold: true, italic: true])
+
+# Aplicar efectos desde EffectInfo
+effect_info = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+texto = Aurora.Effects.apply_effect_info("texto", effect_info)
+
+# Aplicar efectos a ChunkText
+chunk = %Aurora.Structs.ChunkText{
+  text: "texto",
+  effects: %Aurora.Structs.EffectInfo{bold: true, underline: true}
+}
+chunk_con_efectos = Aurora.Effects.apply_chunk_effects(chunk)
 ```
 
 ### `Aurora.Convert` - Utilidades de conversión
@@ -429,7 +440,7 @@ normalized_table = Aurora.Normalize.normalize_table(table)
 %Aurora.Structs.ChunkText{
   text: "Mi texto",                    # Texto (requerido)
   color: %ColorInfo{},                 # Color opcional
-  effects: %EffectInfo{}               # Efectos opcionales
+  effects: %EffectInfo{}               # Efectos opcionales (integrado con Aurora.Effects)
 }
 ```
 
@@ -467,8 +478,7 @@ normalized_table = Aurora.Normalize.normalize_table(table)
   blink: false,                        # Parpadeante
   reverse: false,                      # Invertido
   hidden: false,                       # Oculto
-  strikethrough: false,                # Tachado
-  link: false                          # Como enlace
+  strikethrough: false                 # Tachado
 }
 ```
 

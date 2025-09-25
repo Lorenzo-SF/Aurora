@@ -37,6 +37,25 @@ defmodule Aurora.Convert do
   alias Aurora.{Color, Ensure}
   alias Aurora.Structs.ChunkText
 
+  @doc """
+  Convierte claves de string a atoms en mapas anidados.
+
+  ## Parámetros
+
+  - `data` - Estructura de datos (mapa, lista, struct o valor simple)
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.atomize_keys(%{"name" => "John", "age" => 30})
+      %{name: "John", age: 30}
+
+      iex> Aurora.Convert.atomize_keys([%{"key" => "value"}])
+      [%{key: "value"}]
+
+      iex> Aurora.Convert.atomize_keys(nil)
+      nil
+  """
+  @spec atomize_keys(any()) :: any()
   def atomize_keys(nil), do: nil
   def atomize_keys(%{__struct__: _} = struct), do: struct
 
@@ -46,6 +65,22 @@ defmodule Aurora.Convert do
   def atomize_keys([head | rest]), do: [atomize_keys(head) | atomize_keys(rest)]
   def atomize_keys(not_a_map), do: not_a_map
 
+  @doc """
+  Convierte claves de atoms a strings en mapas anidados.
+
+  ## Parámetros
+
+  - `data` - Estructura de datos (mapa, lista, struct o valor simple)
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.stringify_keys(%{name: "John", age: 30})
+      %{"name" => "John", "age" => 30}
+
+      iex> Aurora.Convert.stringify_keys([%{key: "value"}])
+      [%{"key" => "value"}]
+  """
+  @spec stringify_keys(any()) :: any()
   def stringify_keys(nil), do: nil
 
   def stringify_keys(%{} = map) do
@@ -58,6 +93,24 @@ defmodule Aurora.Convert do
   def stringify_keys([head | rest]), do: [stringify_keys(head) | stringify_keys(rest)]
   def stringify_keys(not_a_map), do: not_a_map
 
+  @doc """
+  Convierte claves a formato underscore en mapas anidados.
+
+  Transforma claves CamelCase a snake_case y normaliza guiones.
+
+  ## Parámetros
+
+  - `data` - Estructura de datos (mapa, lista o valor simple)
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.underscore_keys(%{"firstName" => "John", "lastName" => "Doe"})
+      %{"first_name" => "John", "last_name" => "Doe"}
+
+      iex> Aurora.Convert.underscore_keys(%{"user-name" => "admin"})
+      %{"user_name" => "admin"}
+  """
+  @spec underscore_keys(any()) :: any()
   def underscore_keys(nil), do: nil
 
   def underscore_keys(%{} = map) do
@@ -69,18 +122,75 @@ defmodule Aurora.Convert do
   def underscore_keys([head | rest]), do: [underscore_keys(head) | underscore_keys(rest)]
   def underscore_keys(not_a_map), do: not_a_map
 
+  @doc """
+  Combina dos mapas de manera profunda (deep merge).
+
+  Los mapas anidados se fusionan recursivamente en lugar de ser reemplazados.
+
+  ## Parámetros
+
+  - `map1` - Mapa base
+  - `map2` - Mapa a fusionar (tiene precedencia)
+
+  ## Ejemplos
+
+      iex> map1 = %{a: %{x: 1, y: 2}, b: 3}
+      iex> map2 = %{a: %{y: 20, z: 30}, c: 4}
+      iex> Aurora.Convert.deep_merge(map1, map2)
+      %{a: %{x: 1, y: 20, z: 30}, b: 3, c: 4}
+  """
+  @spec deep_merge(map(), map()) :: map()
   def deep_merge(%{} = map1, %{} = map2) do
     Map.merge(map1, map2, fn _k, v1, v2 ->
       if is_map(v1) and is_map(v2), do: deep_merge(v1, v2), else: v2
     end)
   end
 
+  @doc """
+  Elimina todas las claves con valores nil de un mapa.
+
+  ## Parámetros
+
+  - `map` - Mapa del que eliminar valores nil
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.clean_nil_values(%{a: 1, b: nil, c: 3})
+      %{a: 1, c: 3}
+
+      iex> Aurora.Convert.clean_nil_values(%{all: nil})
+      %{}
+  """
+  @spec clean_nil_values(map()) :: map()
   def clean_nil_values(%{} = map) do
     map
     |> Enum.reject(fn {_k, v} -> is_nil(v) end)
     |> Enum.into(%{})
   end
 
+  @doc """
+  Convierte un valor a un tipo específico usando las funciones Aurora.Ensure.
+
+  ## Parámetros
+
+  - `value` - Valor a convertir
+  - `type` - Tipo objetivo (:string, :integer, :float, :boolean, :atom, :list, :map)
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.cast("123", :integer)
+      123
+
+      iex> Aurora.Convert.cast("true", :boolean)
+      true
+
+      iex> Aurora.Convert.cast(123, :string)
+      "123"
+
+      iex> Aurora.Convert.cast("hello", :atom)
+      :hello
+  """
+  @spec cast(any(), atom()) :: any()
   def cast(value, :string), do: Ensure.string(value)
   def cast(value, :integer), do: Ensure.integer(value)
   def cast(value, :float), do: Ensure.float(value)
@@ -90,10 +200,51 @@ defmodule Aurora.Convert do
   def cast(value, :map), do: Ensure.map(value)
   def cast(value, _), do: value
 
+  @doc """
+  Verifica si los datos tienen formato de tabla (lista de listas).
+
+  ## Parámetros
+
+  - `data` - Datos a verificar
+
+  ## Ejemplos
+
+      iex> Aurora.Convert.table?([[1, 2], [3, 4]])
+      true
+
+      iex> Aurora.Convert.table?([1, 2, 3])
+      false
+
+      iex> Aurora.Convert.table?([])
+      false
+  """
+  @spec table?(any()) :: boolean()
   def table?([]), do: false
   def table?([first | _]) when is_list(first), do: true
   def table?(_), do: false
 
+  @doc """
+  Convierte diferentes tipos de datos a ChunkText.
+
+  ## Parámetros
+
+  - `data` - Puede ser string, tupla {texto, color}, o cualquier valor
+
+  ## Ejemplos
+
+      iex> chunk = Aurora.Convert.to_chunk("Hola")
+      iex> chunk.text
+      "Hola"
+
+      iex> chunk = Aurora.Convert.to_chunk({"Error", :error})
+      iex> chunk.text
+      "Error"
+
+      iex> chunk = Aurora.Convert.to_chunk(123)
+      iex> chunk.text
+      "123"
+  """
+  @spec to_chunk(String.t() | {String.t(), atom() | String.t()} | any()) :: ChunkText.t()
   def to_chunk(text) when is_binary(text) do
     %ChunkText{text: text, color: Color.get_color_info(:no_color)}
   end
@@ -105,6 +256,28 @@ defmodule Aurora.Convert do
   def to_chunk(value),
     do: %ChunkText{text: to_string(value), color: Color.get_color_info(:no_color)}
 
+  @doc """
+  Normaliza una tabla ajustando el ancho de las columnas y rellenando filas.
+
+  Asegura que todas las filas tengan el mismo número de columnas y
+  aplica padding para alineación uniforme.
+
+  ## Parámetros
+
+  - `rows` - Lista de listas representando filas de la tabla
+
+  ## Ejemplos
+
+      iex> rows = [
+      ...>   [%Aurora.Structs.ChunkText{text: "ID"}, %Aurora.Structs.ChunkText{text: "Nombre"}],
+      ...>   [%Aurora.Structs.ChunkText{text: "1"}, %Aurora.Structs.ChunkText{text: "Juan"}],
+      ...>   [%Aurora.Structs.ChunkText{text: "10"}, %Aurora.Structs.ChunkText{text: "María"}]
+      ...> ]
+      iex> result = Aurora.Convert.normalize_table(rows)
+      iex> is_list(result)
+      true
+  """
+  @spec normalize_table([[ChunkText.t()]]) :: [[ChunkText.t()]]
   def normalize_table(rows) when is_list(rows) do
     max_cols =
       rows
