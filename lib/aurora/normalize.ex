@@ -25,6 +25,7 @@ defmodule Aurora.Normalize do
 
   alias Aurora.Color
   alias Aurora.Structs.ChunkText
+
   def normalize_text(text, :lower),
     do: text |> String.trim() |> String.downcase() |> remove_diacritics()
 
