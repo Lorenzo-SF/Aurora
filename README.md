@@ -297,14 +297,14 @@ Para casos donde necesitas control total, usa los módulos especializados:
 
 ### Tabla de Referencia Rápida - Módulos Especializados
 
-| Módulo              | Funciones principales                                   | Uso principal                            |
-| ------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| `Aurora.Format`     | `format/1`, `clean_ansi/1`, `pretty_json/1`            | Formateo de texto y estructuras          |
-| `Aurora.Color`      | `get_color_info/1`, `apply_to_chunk/1`, `gradient/3`   | Manejo de colores y gradientes           |
-| `Aurora.Effects`    | `apply_effect/2`, `apply_multiple_effects/2`           | Aplicación de efectos ANSI               |
-| `Aurora.Convert`    | `to_chunk/1`, `table?/1`, `normalize_table/1`          | Conversión y transformación de datos     |
-| `Aurora.Ensure`     | `ensure_string/1`, `ensure_integer/1`, `ensure_list/1` | Garantía de tipos con valores seguros    |
-| `Aurora.Normalize`  | `normalize_text/2`, `normalize_messages/1`             | Normalización de texto y estructuras     |
+| Módulo             | Funciones principales                                | Uso principal                         |
+| ------------------ | ---------------------------------------------------- | ------------------------------------- |
+| `Aurora.Format`    | `format/1`, `clean_ansi/1`, `pretty_json/1`          | Formateo de texto y estructuras       |
+| `Aurora.Color`     | `get_color_info/1`, `apply_to_chunk/1`, `gradient/3` | Manejo de colores y gradientes        |
+| `Aurora.Effects`   | `apply_effect/2`, `apply_multiple_effects/2`         | Aplicación de efectos ANSI            |
+| `Aurora.Convert`   | `to_chunk/1`, `table?/1`, `normalize_table/1`        | Conversión y transformación de datos  |
+| `Aurora.Ensure`    | `string/1`, `integer/1`, `list/1`                    | Garantía de tipos con valores seguros |
+| `Aurora.Normalize` | `normalize_text/2`, `normalize_messages/1`           | Normalización de texto y estructuras  |
 
 ### `Aurora.Format` - Control total del formateo
 
@@ -384,22 +384,22 @@ Aurora.Convert.cast("texto", :atom)    # :texto
 
 ```elixir
 # Asegurar tipos específicos con valores por defecto seguros
-Aurora.Ensure.ensure_string(nil)        # ""
-Aurora.Ensure.ensure_string(123)        # "123"
-Aurora.Ensure.ensure_integer("42")      # 42
-Aurora.Ensure.ensure_integer("invalid") # 0
+Aurora.Ensure.string(nil)        # ""
+Aurora.Ensure.string(123)        # "123"
+Aurora.Ensure.integer("42")      # 42
+Aurora.Ensure.integer("invalid") # 0
 
 # Asegurar listas y estructuras
-Aurora.Ensure.ensure_list(nil)          # []
-Aurora.Ensure.ensure_list("texto")      # ["texto"]
-Aurora.Ensure.ensure_map([a: 1, b: 2])  # %{a: 1, b: 2}
+Aurora.Ensure.list(nil)          # []
+Aurora.Ensure.list("texto")      # ["texto"]
+Aurora.Ensure.map([a: 1, b: 2])  # %{a: 1, b: 2}
 
 # Asegurar chunks de texto válidos
-chunk = Aurora.Ensure.ensure_chunk_text("texto")
-chunk = Aurora.Ensure.ensure_chunk_text({"texto", :primary})
+chunk = Aurora.Ensure.chunk_text("texto")
+chunk = Aurora.Ensure.chunk_text({"texto", :primary})
 
 # Conversión de listas con función de transformación
-Aurora.Ensure.ensure_list_of(["1", "2", "3"], :ensure_integer)  # [1, 2, 3]
+Aurora.Ensure.list_of(["1", "2", "3"], :integer)  # [1, 2, 3]
 ```
 
 ### `Aurora.Normalize` - Normalización de datos

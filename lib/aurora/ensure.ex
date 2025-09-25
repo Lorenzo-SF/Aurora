@@ -37,88 +37,88 @@ defmodule Aurora.Ensure do
   alias Aurora.Color
   alias Aurora.Structs.{ChunkText, ColorInfo, FormatInfo}
 
-  def ensure_list(nil), do: []
-  def ensure_list(value) when is_list(value), do: value
-  def ensure_list(value), do: [value]
+  def list(nil), do: []
+  def list(value) when is_list(value), do: value
+  def list(value), do: [value]
 
-  def ensure_tuple(value, default_value \\ {})
-  def ensure_tuple(value, _default_value) when is_tuple(value), do: value
-  def ensure_tuple(nil, default_value), do: default_value
-  def ensure_tuple("", default_value), do: default_value
-  def ensure_tuple([], default_value), do: default_value
-  def ensure_tuple(%{} = map, default_value) when map_size(map) == 0, do: default_value
-  def ensure_tuple(value, _default_value) when is_binary(value), do: {value, :no_data}
-  def ensure_tuple(value, _default_value) when is_list(value), do: {value, :no_data}
-  def ensure_tuple(%{} = value, _default_value), do: {value, :no_data}
-  def ensure_tuple(value, _default_value), do: {value, :no_data}
+  def tuple(value, default_value \\ {})
+  def tuple(value, _default_value) when is_tuple(value), do: value
+  def tuple(nil, default_value), do: default_value
+  def tuple("", default_value), do: default_value
+  def tuple([], default_value), do: default_value
+  def tuple(%{} = map, default_value) when map_size(map) == 0, do: default_value
+  def tuple(value, _default_value) when is_binary(value), do: {value, :no_data}
+  def tuple(value, _default_value) when is_list(value), do: {value, :no_data}
+  def tuple(%{} = value, _default_value), do: {value, :no_data}
+  def tuple(value, _default_value), do: {value, :no_data}
 
-  def ensure_map(nil), do: %{}
-  def ensure_map(%{} = value), do: value
-  def ensure_map(value) when is_list(value), do: Map.new(value)
-  def ensure_map(value), do: %{value: value}
+  def map(nil), do: %{}
+  def map(%{} = value), do: value
+  def map(value) when is_list(value), do: Map.new(value)
+  def map(value), do: %{value: value}
 
-  def ensure_integer(value) when is_integer(value), do: value
+  def integer(value) when is_integer(value), do: value
 
-  def ensure_integer(value) when is_binary(value) do
+  def integer(value) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> int
       _ -> 0
     end
   end
 
-  def ensure_integer(_), do: 0
+  def integer(_), do: 0
 
-  def ensure_float(value) when is_float(value), do: value
-  def ensure_float(value) when is_integer(value), do: value * 1.0
+  def float(value) when is_float(value), do: value
+  def float(value) when is_integer(value), do: value * 1.0
 
-  def ensure_float(value) when is_binary(value) do
+  def float(value) when is_binary(value) do
     case Float.parse(value) do
       {f, ""} -> f
       _ -> 0.0
     end
   end
 
-  def ensure_float(_), do: 0.0
+  def float(_), do: 0.0
 
-  def ensure_atom(value) when is_atom(value), do: value
-  def ensure_atom(value) when is_binary(value), do: to_atom_safe(value)
-  def ensure_atom(_), do: :ozu
+  def atom(value) when is_atom(value), do: value
+  def atom(value) when is_binary(value), do: to_atom_safe(value)
+  def atom(_), do: :ozu
 
-  def ensure_string(nil), do: ""
-  def ensure_string(value) when is_binary(value), do: value
+  def string(nil), do: ""
+  def string(value) when is_binary(value), do: value
 
-  def ensure_string(value) when is_atom(value) or is_integer(value) or is_float(value),
+  def string(value) when is_atom(value) or is_integer(value) or is_float(value),
     do: to_string(value)
 
-  def ensure_string(value), do: inspect(value)
+  def string(value), do: inspect(value)
 
-  def ensure_boolean(value) when is_boolean(value), do: value
-  def ensure_boolean("true"), do: true
-  def ensure_boolean("false"), do: false
-  def ensure_boolean(_), do: false
+  def boolean(value) when is_boolean(value), do: value
+  def boolean("true"), do: true
+  def boolean("false"), do: false
+  def boolean(_), do: false
 
-  def ensure_chunk_text(%ChunkText{} = chunk), do: chunk
+  def chunk_text(%ChunkText{} = chunk), do: chunk
 
-  def ensure_chunk_text(%FormatInfo{} = fmt_info) do
+  def chunk_text(%FormatInfo{} = fmt_info) do
     %ChunkText{text: inspect(fmt_info), color: Color.resolve_color(:no_color)}
   end
 
-  def ensure_chunk_text(%ColorInfo{} = color_info) do
+  def chunk_text(%ColorInfo{} = color_info) do
     %ChunkText{text: to_string(color_info.name), color: color_info}
   end
 
-  def ensure_chunk_text({text, color}) when is_binary(text) and is_binary(color) do
+  def chunk_text({text, color}) when is_binary(text) and is_binary(color) do
     %ChunkText{text: text, color: Color.resolve_color(:no_color)}
   end
 
-  def ensure_chunk_text(str) when is_binary(str) do
+  def chunk_text(str) when is_binary(str) do
     %ChunkText{text: str, color: Color.resolve_color(:no_color)}
   end
 
-  def ensure_chunk_text(_), do: %ChunkText{text: ""}
+  def chunk_text(_), do: %ChunkText{text: ""}
 
-  def ensure_struct(%mod{} = struct, mod), do: struct
-  def ensure_struct(_, _mod), do: nil
+  def struct(%mod{} = struct, mod), do: struct
+  def struct(_, _mod), do: nil
 
   def deep_merge(%{} = map1, %{} = map2) do
     Map.merge(map1, map2, fn _k, v1, v2 ->
@@ -132,18 +132,18 @@ defmodule Aurora.Ensure do
     |> Enum.into(%{})
   end
 
-  def cast(value, :string), do: ensure_string(value)
-  def cast(value, :integer), do: ensure_integer(value)
-  def cast(value, :float), do: ensure_float(value)
-  def cast(value, :boolean), do: ensure_boolean(value)
-  def cast(value, :atom), do: ensure_atom(value)
-  def cast(value, :list), do: ensure_list(value)
-  def cast(value, :map), do: ensure_map(value)
+  def cast(value, :string), do: string(value)
+  def cast(value, :integer), do: integer(value)
+  def cast(value, :float), do: float(value)
+  def cast(value, :boolean), do: boolean(value)
+  def cast(value, :atom), do: atom(value)
+  def cast(value, :list), do: list(value)
+  def cast(value, :map), do: map(value)
   def cast(value, _), do: value
 
-  def ensure_list_of(value, type_fun) do
+  def list_of(value, type_fun) do
     value
-    |> ensure_list()
+    |> list()
     |> Enum.map(&apply(__MODULE__, type_fun, [&1]))
   end
 

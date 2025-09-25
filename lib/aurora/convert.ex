@@ -81,13 +81,13 @@ defmodule Aurora.Convert do
     |> Enum.into(%{})
   end
 
-  def cast(value, :string), do: Ensure.ensure_string(value)
-  def cast(value, :integer), do: Ensure.ensure_integer(value)
-  def cast(value, :float), do: Ensure.ensure_float(value)
-  def cast(value, :boolean), do: Ensure.ensure_boolean(value)
-  def cast(value, :atom), do: Ensure.ensure_atom(value)
-  def cast(value, :list), do: Ensure.ensure_list(value)
-  def cast(value, :map), do: Ensure.ensure_map(value)
+  def cast(value, :string), do: Ensure.string(value)
+  def cast(value, :integer), do: Ensure.integer(value)
+  def cast(value, :float), do: Ensure.float(value)
+  def cast(value, :boolean), do: Ensure.boolean(value)
+  def cast(value, :atom), do: Ensure.atom(value)
+  def cast(value, :list), do: Ensure.list(value)
+  def cast(value, :map), do: Ensure.map(value)
   def cast(value, _), do: value
 
   def table?([]), do: false

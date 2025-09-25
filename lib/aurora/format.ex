@@ -102,7 +102,7 @@ defmodule Aurora.Format do
 
   defp apply_indentation(chunks, _manual_tabs) do
     Enum.map(chunks, fn chunk ->
-      chunk = Ensure.ensure_chunk_text(chunk)
+      chunk = Ensure.chunk_text(chunk)
 
       color_name =
         case chunk.color do
