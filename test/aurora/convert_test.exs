@@ -48,4 +48,30 @@ defmodule Aurora.ConvertTest do
       assert byte_size(text) > 0
     end
   end
+
+  describe "delegated functions to Aurora.Ensure" do
+    test "deep_merge/2 delegates correctly" do
+      map1 = %{a: %{x: 1, y: 2}, b: 3}
+      map2 = %{a: %{y: 20, z: 30}, c: 4}
+      expected = %{a: %{x: 1, y: 20, z: 30}, b: 3, c: 4}
+
+      assert Aurora.Convert.deep_merge(map1, map2) == expected
+    end
+
+    test "clean_nil_values/1 delegates correctly" do
+      map = %{a: 1, b: nil, c: 3}
+      assert Aurora.Convert.clean_nil_values(map) == %{a: 1, c: 3}
+    end
+
+    test "cast/2 delegates correctly" do
+      assert Aurora.Convert.cast("123", :integer) == 123
+      assert Aurora.Convert.cast(nil, :string) == ""
+      assert Aurora.Convert.cast("hello", :atom) == :hello
+      assert Aurora.Convert.cast(42, :float) == 42.0
+      assert Aurora.Convert.cast("true", :boolean) == true
+      assert Aurora.Convert.cast("single", :list) == ["single"]
+      assert Aurora.Convert.cast([{:a, 1}], :map) == %{a: 1}
+      assert Aurora.Convert.cast("test", :unknown) == "test"
+    end
+  end
 end

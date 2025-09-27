@@ -136,4 +136,86 @@ defmodule AuroraTest do
       assert result == invalid_json
     end
   end
+
+  describe "Aurora.json/2 function" do
+    test "formats JSON from string" do
+      json_string = ~s({"name":"John","age":30})
+      result = Aurora.json(json_string)
+      assert is_binary(result)
+      assert String.contains?(result, "name")
+      assert String.contains?(result, "John")
+    end
+
+    test "formats JSON from map" do
+      data = %{name: "John", age: 30}
+      result = Aurora.json(data)
+      assert is_binary(result)
+      assert String.contains?(result, "name")
+      assert String.contains?(result, "John")
+    end
+
+    test "formats JSON with color option" do
+      data = %{status: "ok"}
+      result = Aurora.json(data, color: :success)
+      assert is_binary(result)
+      assert String.contains?(result, "status")
+    end
+
+    test "formats JSON with compact option" do
+      data = %{a: 1, b: 2}
+      result = Aurora.json(data, compact: true)
+      assert is_binary(result)
+      # Compact format should not have pretty printing
+      refute String.contains?(result, "\n  ")
+    end
+
+    test "formats JSON with indent option" do
+      data = %{a: 1}
+      result = Aurora.json(data, indent: true)
+      assert is_binary(result)
+      # Should have extra indentation
+      assert String.contains?(result, "  ")
+    end
+  end
+
+  describe "Aurora.format/2 with different input types" do
+    test "formats single string text" do
+      result = Aurora.format("Hello", color: :primary)
+      assert is_binary(result)
+      assert String.contains?(result, "Hello")
+    end
+
+    test "formats list of strings" do
+      result = Aurora.format(["Hello", "World"], color: :primary)
+      assert is_binary(result)
+      assert String.contains?(result, "Hello")
+      assert String.contains?(result, "World")
+    end
+
+    test "formats with alignment options" do
+      result = Aurora.format("Test", align: :center)
+      assert is_binary(result)
+      assert String.contains?(result, "Test")
+    end
+
+    test "formats with bold effect" do
+      result = Aurora.format("Bold", bold: true)
+      assert is_binary(result)
+      assert String.contains?(result, "Bold")
+      assert String.contains?(result, "\e[1m") # Bold ANSI code
+    end
+  end
+
+  describe "gradient function optimization" do
+    test "gradient function uses Enum.take correctly" do
+      result = Aurora.gradient("#FF0000", "#00FF00", 3)
+      assert length(result) == 3
+      assert is_list(result)
+    end
+
+    test "gradient function with default 6 steps" do
+      result = Aurora.gradient("#FF0000", "#00FF00")
+      assert length(result) == 6
+    end
+  end
 end

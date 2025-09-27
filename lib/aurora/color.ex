@@ -51,38 +51,28 @@ defmodule Aurora.Color do
   @colors Application.compile_env(:aurora, :colors)[:colors]
   @gradients Application.compile_env(:aurora, :colors)[:gradients]
 
-  @doc """
-  Devuelve el mapa de colores configurados (name => ColorInfo struct).
-  """
-  def all_colors_availables do
-    Map.merge(colors(), gradients())
-  end
-
   def get_default_color, do: %ColorInfo{}
 
-  def colors do
-    colors_config = @colors || %{}
-
-    colors_config
+  defp build_color_map(config) when is_map(config) do
+    config
     |> Enum.map(fn {name, %{hex: hex}} ->
       {name, %ColorInfo{name: name, hex: normalize_hex(hex), inverted: false}}
     end)
     |> Map.new()
   end
 
-  def gradients do
-    gradients_config = @gradients || %{}
+  def colors, do: build_color_map(@colors)
+  def gradients, do: build_color_map(@gradients)
 
-    gradients_config
-    |> Enum.map(fn {name, %{hex: hex}} ->
-      {name, %ColorInfo{name: name, hex: normalize_hex(hex), inverted: false}}
-    end)
-    |> Map.new()
-  end
-
+  @doc """
+  Devuelve el mapa de todos los colores y gradientes disponibles.
+  """
   def get_all_colors do
     Map.merge(colors(), gradients())
   end
+
+  @deprecated "Use get_all_colors/0 instead"
+  def all_colors_availables, do: get_all_colors()
 
   @doc """
   Dado un atom o hex string, devuelve el ColorInfo si está o es válido.
@@ -104,41 +94,44 @@ defmodule Aurora.Color do
 
   def get_color_info(_), do: get_color_info(:no_color)
 
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 1,
-    do: List.duplicate(Enum.at(colors, 0), 6)
+  def extract_hexes(raw_gradients) when is_list(raw_gradients),
+    do: Enum.map(raw_gradients, &extract_hex(&1))
 
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 2,
-    do: List.duplicate(Enum.at(colors, 0), 3) ++ List.duplicate(Enum.at(colors, 1), 3)
+  def extract_hexes(%{} = raw_gradients),
+    do: raw_gradients |> Map.values() |> Enum.map(&extract_hex(&1))
 
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 3,
-    do:
-      List.duplicate(Enum.at(colors, 0), 2) ++
-        List.duplicate(Enum.at(colors, 1), 2) ++ List.duplicate(Enum.at(colors, 2), 2)
+  def extract_hexes(raw_gradients), do: [extract_hex(raw_gradients)]
 
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 4,
-    do: [
-      Enum.at(colors, 0),
-      Enum.at(colors, 0),
-      Enum.at(colors, 1),
-      Enum.at(colors, 2),
-      Enum.at(colors, 3),
-      Enum.at(colors, 3)
-    ]
+  def extract_hex(%ColorInfo{hex: hex}), do: hex
+  def extract_hex({_, %ColorInfo{hex: hex}}), do: hex
+  def extract_hex(%{} = map), do: Map.get(map, :hex, "")
+  def extract_hex({_, v}) when is_binary(v), do: v
+  def extract_hex(v) when is_binary(v), do: v
+  def extract_hex(v), do: to_string(v)
 
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 5,
-    do: [
-      Enum.at(colors, 0),
-      Enum.at(colors, 1),
-      Enum.at(colors, 2),
-      Enum.at(colors, 2),
-      Enum.at(colors, 3),
-      Enum.at(colors, 4)
-    ]
-
-  def expand_gradient_colors(colors) when is_list(colors) and length(colors) == 6,
-    do: colors
+  def expand_gradient_colors(colors) when is_list(colors) do
+    case length(colors) do
+      1 -> List.duplicate(Enum.at(colors, 0), 6)
+      2 -> expand_by_duplication(colors, [3, 3])
+      3 -> expand_by_duplication(colors, [2, 2, 2])
+      4 -> expand_by_pattern(colors, [0, 0, 1, 2, 3, 3])
+      5 -> expand_by_pattern(colors, [0, 1, 2, 2, 3, 4])
+      6 -> colors
+      _ -> List.duplicate(get_color_info(:no_color), 6)
+    end
+  end
 
   def expand_gradient_colors(_), do: List.duplicate(get_color_info(:no_color), 6)
+
+  defp expand_by_duplication(colors, counts) do
+    colors
+    |> Enum.zip(counts)
+    |> Enum.flat_map(fn {color, count} -> List.duplicate(color, count) end)
+  end
+
+  defp expand_by_pattern(colors, pattern) do
+    Enum.map(pattern, &Enum.at(colors, &1))
+  end
 
   def apply_color(text, %ColorInfo{hex: hex, inverted: inverted}) when is_binary(hex) do
     {r, g, b} = hex_to_rgb(hex)
@@ -197,9 +190,8 @@ defmodule Aurora.Color do
     16 + r6 * 36 + g6 * 6 + b6
   end
 
-  defp clamp6(n) when n < 0, do: 0
   defp clamp6(n) when n > 5, do: 5
-  defp clamp6(n), do: n
+  defp clamp6(n), do: max(n, 0)
 
   @doc """
   Convierte hex #RRGGBB a {r,g,b} tuple con valores 0..255.
@@ -250,21 +242,26 @@ defmodule Aurora.Color do
   Calcula los colores intermedios de forma lineal.
   """
   def generate_gradient_between(first_hex, last_hex) do
-    if valid_hex?(first_hex) and valid_hex?(last_hex) do
-      {r1, g1, b1} = hex_to_rgb(first_hex)
-      {r2, g2, b2} = hex_to_rgb(last_hex)
-
-      0..5
-      |> Enum.map(fn i ->
-        r = round(r1 + (r2 - r1) * i / 5)
-        g = round(g1 + (g2 - g1) * i / 5)
-        b = round(b1 + (b2 - b1) * i / 5)
-        rgb_to_hex({r, g, b})
-      end)
-      |> Enum.map(&normalize_hex/1)
+    with true <- valid_hex?(first_hex),
+         true <- valid_hex?(last_hex),
+         {r1, g1, b1} <- hex_to_rgb(first_hex),
+         {r2, g2, b2} <- hex_to_rgb(last_hex) do
+      generate_gradient_steps({r1, g1, b1}, {r2, g2, b2}, 6)
     else
-      get_default_color().hex
+      _ -> List.duplicate(get_default_color().hex, 6)
     end
+  end
+
+  defp generate_gradient_steps({r1, g1, b1}, {r2, g2, b2}, steps) do
+    0..(steps - 1)
+    |> Enum.map(fn i ->
+      factor = i / (steps - 1)
+      r = round(r1 + (r2 - r1) * factor)
+      g = round(g1 + (g2 - g1) * factor)
+      b = round(b1 + (b2 - b1) * factor)
+      rgb_to_hex({r, g, b})
+    end)
+    |> Enum.map(&normalize_hex/1)
   end
 
   def darken_rgb({r, g, b}, amount) do

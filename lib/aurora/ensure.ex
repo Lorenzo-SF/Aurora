@@ -23,7 +23,7 @@ defmodule Aurora.Ensure do
   - `integer/1` → Siempre retorna entero (0 por defecto)
   - `float/1` → Siempre retorna float (0.0 por defecto)
   - `boolean/1` → Siempre retorna boolean (false por defecto)
-  - `atom/1` → Siempre retorna atom (:ozu por defecto)
+  - `atom/1` → Siempre retorna atom (:ok por defecto)
   - `list/1` → Siempre retorna lista ([] por defecto)
   - `map/1` → Siempre retorna mapa ({} por defecto)
 
@@ -212,12 +212,12 @@ defmodule Aurora.Ensure do
       :world
 
       iex> Aurora.Ensure.atom(123)
-      :ozu
+      :ok
   """
   @spec atom(any()) :: atom()
   def atom(value) when is_atom(value), do: value
   def atom(value) when is_binary(value), do: to_atom_safe(value)
-  def atom(_), do: :ozu
+  def atom(_), do: :ok
 
   @doc """
   Asegura que el valor sea un string.
@@ -299,22 +299,26 @@ defmodule Aurora.Ensure do
   def chunk_text(%ChunkText{} = chunk), do: chunk
 
   def chunk_text(%FormatInfo{} = fmt_info) do
-    %ChunkText{text: inspect(fmt_info), color: Color.resolve_color(:no_color)}
+    create_chunk(inspect(fmt_info), Color.resolve_color(:no_color))
   end
 
   def chunk_text(%ColorInfo{} = color_info) do
-    %ChunkText{text: to_string(color_info.name), color: color_info}
+    create_chunk(to_string(color_info.name), color_info)
   end
 
   def chunk_text({text, color}) when is_binary(text) and is_binary(color) do
-    %ChunkText{text: text, color: Color.resolve_color(:no_color)}
+    create_chunk(text, Color.resolve_color(:no_color))
   end
 
   def chunk_text(str) when is_binary(str) do
-    %ChunkText{text: str, color: Color.resolve_color(:no_color)}
+    create_chunk(str, Color.resolve_color(:no_color))
   end
 
   def chunk_text(_), do: %ChunkText{text: ""}
+
+  defp create_chunk(text, color) do
+    %ChunkText{text: text, color: color}
+  end
 
   @doc """
   Verifica que un valor sea un struct del módulo esperado.

@@ -1,0 +1,9 @@
+[
+  ~r/lib\/aurora\.ex:279.*invalid_contract/,
+  ~r/lib\/aurora\.ex:108.*no_return/,
+  ~r/lib\/aurora\.ex:112.*call/,
+  ~r/lib\/aurora\.ex:115.*no_return/,
+  ~r/lib\/aurora\.ex:119.*call/,
+  ~r/lib\/aurora\.ex:280.*no_return/,
+  ~r/lib\/aurora\.ex:290.*call/
+]

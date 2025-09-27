@@ -4,10 +4,12 @@ defmodule Aurora.MixProject do
   def project do
     [
       app: :aurora,
-      version: "1.0.2",
+      version: "1.0.4",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
+      dialyzer: [ignore_warnings: ".dialyzer_ignore.exs"],
       description: description(),
       package: package(),
       source_url: "https://github.com/lorenzo-sf/aurora",
@@ -27,7 +29,11 @@ defmodule Aurora.MixProject do
 
   defp deps do
     [
+      {:benchee, "~> 1.3", only: :dev},
+      {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
+      {:propcheck, "~> 1.4", only: :test},
       {:credo, "~> 1.7.11", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:jason, "~> 1.4"}
     ]
@@ -50,7 +56,27 @@ defmodule Aurora.MixProject do
         "GitHub" => "https://github.com/lorenzo-sf/aurora",
         "Docs" => "https://hexdocs.pm/aurora"
       },
-      files: ~w(lib mix.exs README.md LICENSE)
+      files: ~w(lib mix.exs README.md LICENSE .dialyzer_ignore.exs)
+    ]
+  end
+
+  defp aliases do
+    [
+      quality: [
+        "deps.get",
+        "clean",
+        "compile --warnings-as-errors",
+        "cmd MIX_ENV=test mix test",
+        "credo --strict",
+        "dialyzer"
+      ],
+      ci: [
+        "deps.get",
+        "clean",
+        "compile --warnings-as-errors",
+        "cmd MIX_ENV=test mix test",
+        "credo --strict"
+      ]
     ]
   end
 end

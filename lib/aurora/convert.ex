@@ -125,13 +125,6 @@ defmodule Aurora.Convert do
   @doc """
   Combina dos mapas de manera profunda (deep merge).
 
-  Los mapas anidados se fusionan recursivamente en lugar de ser reemplazados.
-
-  ## Parámetros
-
-  - `map1` - Mapa base
-  - `map2` - Mapa a fusionar (tiene precedencia)
-
   ## Ejemplos
 
       iex> map1 = %{a: %{x: 1, y: 2}, b: 3}
@@ -140,65 +133,29 @@ defmodule Aurora.Convert do
       %{a: %{x: 1, y: 20, z: 30}, b: 3, c: 4}
   """
   @spec deep_merge(map(), map()) :: map()
-  def deep_merge(%{} = map1, %{} = map2) do
-    Map.merge(map1, map2, fn _k, v1, v2 ->
-      if is_map(v1) and is_map(v2), do: deep_merge(v1, v2), else: v2
-    end)
-  end
+  defdelegate deep_merge(map1, map2), to: Ensure
 
   @doc """
   Elimina todas las claves con valores nil de un mapa.
-
-  ## Parámetros
-
-  - `map` - Mapa del que eliminar valores nil
 
   ## Ejemplos
 
       iex> Aurora.Convert.clean_nil_values(%{a: 1, b: nil, c: 3})
       %{a: 1, c: 3}
-
-      iex> Aurora.Convert.clean_nil_values(%{all: nil})
-      %{}
   """
   @spec clean_nil_values(map()) :: map()
-  def clean_nil_values(%{} = map) do
-    map
-    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-    |> Enum.into(%{})
-  end
+  defdelegate clean_nil_values(map), to: Ensure
 
   @doc """
   Convierte un valor a un tipo específico usando las funciones Aurora.Ensure.
-
-  ## Parámetros
-
-  - `value` - Valor a convertir
-  - `type` - Tipo objetivo (:string, :integer, :float, :boolean, :atom, :list, :map)
 
   ## Ejemplos
 
       iex> Aurora.Convert.cast("123", :integer)
       123
-
-      iex> Aurora.Convert.cast("true", :boolean)
-      true
-
-      iex> Aurora.Convert.cast(123, :string)
-      "123"
-
-      iex> Aurora.Convert.cast("hello", :atom)
-      :hello
   """
   @spec cast(any(), atom()) :: any()
-  def cast(value, :string), do: Ensure.string(value)
-  def cast(value, :integer), do: Ensure.integer(value)
-  def cast(value, :float), do: Ensure.float(value)
-  def cast(value, :boolean), do: Ensure.boolean(value)
-  def cast(value, :atom), do: Ensure.atom(value)
-  def cast(value, :list), do: Ensure.list(value)
-  def cast(value, :map), do: Ensure.map(value)
-  def cast(value, _), do: value
+  defdelegate cast(value, type), to: Ensure
 
   @doc """
   Verifica si los datos tienen formato de tabla (lista de listas).
@@ -224,37 +181,72 @@ defmodule Aurora.Convert do
   def table?(_), do: false
 
   @doc """
-  Convierte diferentes tipos de datos a ChunkText.
+  Convierte diferentes representaciones de texto en una estructura `ChunkText`.
 
-  ## Parámetros
+  ## Formatos aceptados
 
-  - `data` - Puede ser string, tupla {texto, color}, o cualquier valor
+    * `String.t()` → texto plano sin color.
+    * `{String.t(), atom() | String.t()}` → texto con color.
+    * `{String.t(), atom() | String.t(), integer(), integer()}` → texto con color y coordenadas.
+    * `any()` → cualquier valor convertible a string.
+
+  `pos_x` y `pos_y` son opcionales, por defecto `0`.
 
   ## Ejemplos
 
-      iex> chunk = Aurora.Convert.to_chunk("Hola")
+      iex> chunk = Aurora.Convert.to_chunk("hola")
       iex> chunk.text
-      "Hola"
+      "hola"
+      iex> chunk.color.name
+      :no_color
 
-      iex> chunk = Aurora.Convert.to_chunk({"Error", :error})
+      iex> chunk = Aurora.Convert.to_chunk({"hola", :red})
       iex> chunk.text
-      "Error"
+      "hola"
+      iex> chunk.color.name
+      :no_color
+
+      iex> chunk = Aurora.Convert.to_chunk({"hola", :green}, 10, 5)
+      iex> chunk.text
+      "hola"
+      iex> chunk.pos_x
+      10
+      iex> chunk.pos_y
+      5
 
       iex> chunk = Aurora.Convert.to_chunk(123)
       iex> chunk.text
       "123"
   """
-  @spec to_chunk(String.t() | {String.t(), atom() | String.t()} | any()) :: ChunkText.t()
-  def to_chunk(text) when is_binary(text) do
-    %ChunkText{text: text, color: Color.get_color_info(:no_color)}
+  @spec to_chunk(
+          String.t()
+          | ChunkText.t()
+          | {String.t(), atom() | String.t()}
+          | {String.t(), atom() | String.t(), integer(), integer()}
+          | any(),
+          integer(),
+          integer()
+        ) :: ChunkText.t()
+
+  def to_chunk(text_or_tuple, pos_x \\ 0, pos_y \\ 0)
+  def to_chunk(%ChunkText{} = chunk, _pos_x, _pos_y), do: chunk
+
+  def to_chunk(text, pos_x, pos_y) when is_binary(text) do
+    %ChunkText{text: text, color: Color.get_color_info(:no_color), pos_x: pos_x, pos_y: pos_y}
   end
 
-  def to_chunk({text, color}) when is_binary(text) do
-    %ChunkText{text: text, color: Color.resolve_color(color)}
+  def to_chunk({text, color}, pos_x, pos_y) when is_binary(text) do
+    %ChunkText{text: text, color: Color.resolve_color(color), pos_x: pos_x, pos_y: pos_y}
   end
 
-  def to_chunk(value),
-    do: %ChunkText{text: to_string(value), color: Color.get_color_info(:no_color)}
+  def to_chunk(value, pos_x, pos_y) do
+    %ChunkText{
+      text: to_string(value),
+      color: Color.get_color_info(:no_color),
+      pos_x: pos_x,
+      pos_y: pos_y
+    }
+  end
 
   @doc """
   Normaliza una tabla ajustando el ancho de las columnas y rellenando filas.
@@ -316,8 +308,6 @@ defmodule Aurora.Convert do
   defp transpose(rows), do: Enum.zip(rows) |> Enum.map(&Tuple.to_list/1)
 
   defp visible_length(str) when is_binary(str) do
-    str
-    |> String.replace(~r/\e\[[0-9;]*m/, "")
-    |> String.length()
+    Aurora.Format.visible_length(str)
   end
 end

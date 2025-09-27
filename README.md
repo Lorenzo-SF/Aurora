@@ -51,11 +51,11 @@ Ver [configuración completa](#-configuración-personalizada-de-colores) más ab
 
 ### 🎯 Funciones Básicas (en Aurora.ex)
 
-| Función             | Descripción                            | Ejemplo                                   |
-| ------------------- | -------------------------------------- | ----------------------------------------- |
-| `Aurora.format/2`   | Formateo básico con color, align, bold | `Aurora.format("texto", color: :primary)` |
-| `Aurora.colorize/2` | Solo aplicar color                     | `Aurora.colorize("texto", :error)`        |
-| `Aurora.stylize/2`  | Solo aplicar efectos                   | `Aurora.stylize("texto", :bold)`          |
+| Función             | Descripción                              | Ejemplo                                   |
+| ------------------- | ---------------------------------------- | ----------------------------------------- |
+| `Aurora.format/2`   | Formateo con color, align, bold y más   | `Aurora.format("texto", color: :primary)` |
+| `Aurora.colorize/2` | Solo aplicar color                       | `Aurora.colorize("texto", :error)`        |
+| `Aurora.stylize/2`  | Aplicar efectos ANSI (individuales/múltiples) | `Aurora.stylize("texto", [:bold, :underline])` |
 
 ### 📊 Datos Estructurados (en Aurora.ex)
 
@@ -102,7 +102,7 @@ Aurora.format("Color custom", color: "#FF6B35") |> IO.puts()
 | Opción   | Valores                                              | Descripción          |
 | -------- | ---------------------------------------------------- | -------------------- |
 | `:color` | `:primary`, `:error`, `:success`, etc. o `"#FF0000"` | Color del texto      |
-| `:align` | `:left`, `:right`, `:center`                         | Alineación del texto |
+| `:align` | `:left`, `:right`, `:center`, `:justify`, `:center_block` | Alineación del texto |
 | `:bold`  | `true`/`false`                                       | Texto en negrita     |
 
 ## 🔧 Funciones Especializadas (para casos avanzados)
@@ -309,18 +309,21 @@ Para casos donde necesitas control total, usa los módulos especializados:
 ### `Aurora.Format` - Control total del formateo
 
 ```elixir
-# Crear estructura FormatInfo completa
+# Crear estructura FormatInfo completa con nuevas opciones
 format_info = %Aurora.Structs.FormatInfo{
   chunks: [
     %Aurora.Structs.ChunkText{
       text: "Título importante",
       color: Aurora.Color.get_color_info(:primary),
-      effects: %Aurora.Structs.EffectInfo{bold: true, underline: true}
+      effects: %Aurora.Structs.EffectInfo{bold: true, underline: true},
+      pos_x: 10,  # Posicionamiento horizontal preciso
+      pos_y: 5   # Posicionamiento vertical preciso
     }
   ],
-  align: :center,
+  align: :center_block,  # Nueva opción de alineación para tablas
   manual_tabs: 2,
-  add_line: :both
+  add_line: :both,
+  mode: :table  # Nuevo modo de renderizado para tablas
 }
 
 resultado = Aurora.Format.format(format_info)
@@ -358,12 +361,62 @@ texto = Aurora.Effects.apply_effects("texto", [bold: true, italic: true])
 effect_info = %Aurora.Structs.EffectInfo{bold: true, italic: true}
 texto = Aurora.Effects.apply_effect_info("texto", effect_info)
 
-# Aplicar efectos a ChunkText
+# Aplicar efectos a ChunkText con posicionamiento
 chunk = %Aurora.Structs.ChunkText{
   text: "texto",
-  effects: %Aurora.Structs.EffectInfo{bold: true, underline: true}
+  effects: %Aurora.Structs.EffectInfo{bold: true, underline: true},
+  pos_x: 15,  # Posición horizontal
+  pos_y: 3   # Posición vertical
 }
 chunk_con_efectos = Aurora.Effects.apply_chunk_effects(chunk)
+```
+
+### 🎯 Nuevas Funcionalidades - Posicionamiento y Modos
+
+```elixir
+# Posicionamiento preciso de texto
+chunk_posicionado = %Aurora.Structs.ChunkText{
+  text: "Texto en coordenadas específicas",
+  color: Aurora.Color.get_color_info(:info),
+  pos_x: 20,  # Columna 20
+  pos_y: 10   # Línea 10
+}
+
+# Modos de renderizado diferentes
+format_tabla = %Aurora.Structs.FormatInfo{
+  chunks: [chunk_posicionado],
+  mode: :table,      # Optimizado para tablas
+  align: :center_block
+}
+
+format_raw = %Aurora.Structs.FormatInfo{
+  chunks: [chunk_posicionado],
+  mode: :raw,        # POSICIONAMIENTO ABSOLUTO - usa pos_x/pos_y para códigos ANSI \e[y;xH
+  align: :left
+}
+
+# Nuevas opciones de alineación
+format_justify = %Aurora.Structs.FormatInfo{
+  chunks: [chunk_posicionado],
+  align: :justify,   # Texto justificado
+  mode: :normal
+}
+
+# EJEMPLO ESPECÍFICO DEL MODO RAW - Posicionamiento absoluto
+chunk_cursor = %Aurora.Structs.ChunkText{
+  text: "🎯 Texto en posición exacta",
+  color: Aurora.Color.get_color_info(:success),
+  pos_x: 25,  # Columna 25
+  pos_y: 12   # Línea 12
+}
+
+# Al usar mode: :raw, Aurora generará: "\e[12;25H🎯 Texto en posición exacta"
+# Esto coloca el cursor en línea 12, columna 25 y luego imprime el texto
+format_raw_cursor = %Aurora.Structs.FormatInfo{
+  chunks: [chunk_cursor],
+  mode: :raw,
+  add_line: :none  # Sin saltos de línea adicionales para control preciso
+}
 ```
 
 ### `Aurora.Convert` - Utilidades de conversión
@@ -440,7 +493,9 @@ normalized_table = Aurora.Normalize.normalize_table(table)
 %Aurora.Structs.ChunkText{
   text: "Mi texto",                    # Texto (requerido)
   color: %ColorInfo{},                 # Color opcional
-  effects: %EffectInfo{}               # Efectos opcionales (integrado con Aurora.Effects)
+  effects: %EffectInfo{},              # Efectos opcionales (integrado con Aurora.Effects)
+  pos_x: 0,                            # Posición horizontal (para renderizado preciso)
+  pos_y: 0                             # Posición vertical (para renderizado preciso)
 }
 ```
 
@@ -460,10 +515,11 @@ normalized_table = Aurora.Normalize.normalize_table(table)
 %Aurora.Structs.FormatInfo{
   chunks: [%ChunkText{}],              # Lista de chunks (requerido)
   default_color: %ColorInfo{},         # Color por defecto
-  align: :left,                        # Alineación
+  align: :left,                        # Alineación (:left, :right, :center, :justify, :center_block)
   manual_tabs: -1,                     # Indentación manual (-1 = automática)
   add_line: :none,                     # Saltos de línea (:before, :after, :both, :none)
-  animation: ""                        # Prefijo de animación
+  animation: "",                       # Prefijo de animación
+  mode: :normal                        # Modo de renderizado (:normal, :table, :raw)
 }
 ```
 
@@ -482,7 +538,22 @@ normalized_table = Aurora.Normalize.normalize_table(table)
 }
 ```
 
-## 🧪 Testing
+## 🔧 Desarrollo y Calidad
+
+Aurora incluye aliases predefinidos para facilitar el desarrollo:
+
+```bash
+# Pipeline completa de calidad (deps, clean, compile, test, credo, dialyzer)
+mix quality
+
+# Pipeline CI/CD rápida (sin dialyzer)
+mix ci
+
+# Equivale a ejecutar manualmente:
+mix deps.get && mix clean && mix compile --warnings-as-errors && MIX_ENV=test mix test && mix credo --strict && mix dialyzer
+```
+
+### 🧪 Testing
 
 ```bash
 # Ejecutar todos los tests
@@ -493,6 +564,9 @@ mix test --only doctest
 
 # Ejecutar tests con cobertura
 mix test --cover
+
+# Ejecutar tests excluyendo los deprecados
+mix test --exclude deprecated
 ```
 
 ## 📦 Dependencias

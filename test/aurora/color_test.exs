@@ -36,4 +36,51 @@ defmodule Aurora.ColorTest do
       assert Map.has_key?(color, :inverted)
     end
   end
+
+  describe "expand_gradient_colors/1" do
+    test "handles single color" do
+      result = Color.expand_gradient_colors(["#FF0000"])
+      assert length(result) == 6
+      assert Enum.all?(result, &(&1 == "#FF0000"))
+    end
+
+    test "handles two colors" do
+      result = Color.expand_gradient_colors(["#FF0000", "#00FF00"])
+      assert length(result) == 6
+      assert Enum.take(result, 3) == ["#FF0000", "#FF0000", "#FF0000"]
+      assert Enum.drop(result, 3) == ["#00FF00", "#00FF00", "#00FF00"]
+    end
+
+    test "handles three colors" do
+      result = Color.expand_gradient_colors(["#FF0000", "#00FF00", "#0000FF"])
+      assert length(result) == 6
+    end
+
+    test "handles six colors unchanged" do
+      colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"]
+      assert Color.expand_gradient_colors(colors) == colors
+    end
+
+    test "handles invalid input" do
+      result = Color.expand_gradient_colors("invalid")
+      assert length(result) == 6
+    end
+  end
+
+  describe "get_all_colors/0" do
+    test "returns map with color info structs" do
+      result = Color.get_all_colors()
+      assert is_map(result)
+
+      # Test that values are ColorInfo structs
+      result
+      |> Map.values()
+      |> Enum.each(fn value -> assert %ColorInfo{} = value end)
+    end
+
+    @tag :deprecated
+    test "all_colors_availables/0 (deprecated) returns same as get_all_colors/0" do
+      assert Color.get_all_colors() == Color.all_colors_availables()
+    end
+  end
 end

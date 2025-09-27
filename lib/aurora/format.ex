@@ -70,31 +70,95 @@ defmodule Aurora.Format do
   Si `chunks` es lista de listas (tabla), usa `center_block`.
   """
   @spec format(FormatInfo.t()) :: String.t()
-  def format(%FormatInfo{chunks: chunks} = fmt) do
-    manual_tabs = fmt.manual_tabs
-    align = fmt.align || :left
-    add_line = fmt.add_line || :none
-    animation = fmt.animation || ""
+  def format(%FormatInfo{
+        chunks: chunks,
+        manual_tabs: manual_tabs,
+        align: align,
+        add_line: add_line,
+        animation: animation,
+        mode: mode
+      }) do
+    case mode do
+      :table -> format_table(chunks, add_line, animation)
+      :raw -> format_raw(chunks, add_line, animation)
+      _ -> format_normal(chunks, manual_tabs, align, add_line, animation)
+    end
+  end
 
-    formatted_chunks =
-      if Convert.table?(chunks) do
-        center_block_align(chunks)
-      else
-        chunks
-        |> apply_indentation(manual_tabs)
-        |> align_text(align)
-      end
+  def add_location_to_text(text, pos_x, pos_y) do
+    "\e[#{pos_y};#{pos_x}H#{text}"
+  end
 
-    # Aplicar efectos antes que colores
-    effects_applied_chunks = apply_effects_to_chunks(formatted_chunks)
-    colored_chunks = Color.apply_to_chunk(effects_applied_chunks)
+  defp format_table(chunks, add_line, animation) do
+    chunks
+    |> center_block_align()
+    |> format_base(add_line, animation)
+  end
 
+  defp format_raw(
+         [%ChunkText{text: text, pos_x: pos_x, pos_y: pos_y} = head | body],
+         add_line,
+         animation
+       ) do
+    raw_head = %ChunkText{head | text: add_location_to_text(text, pos_x, pos_y)}
+
+    raw_head
+    |> Ensure.list()
+    |> Enum.concat(body)
+    |> format_base(add_line, animation)
+  end
+
+  defp format_normal(chunks, manual_tabs, align, add_line, animation) do
+    chunks
+    |> apply_indentation(manual_tabs)
+    |> align_text(align)
+    |> format_base(add_line, animation)
+  end
+
+  defp format_base(chunks, add_line, animation) do
     output =
-      colored_chunks
+      chunks
+      |> apply_effects_to_chunks()
+      |> Color.apply_to_chunk()
       |> Enum.map_join("", & &1.text)
       |> add_new_lines(add_line)
 
     animation <> output
+  end
+
+  def format_logo(lines, opts \\ []) when is_list(lines) do
+    align = Keyword.get(opts, :align, :left)
+    _mode = Keyword.get(opts, :mode, :normal)
+    pos_x = Keyword.get(opts, :pos_x, 0)
+    pos_y = Keyword.get(opts, :pos_y, 0)
+    raw_gradients = Keyword.get(opts, :gradient_colors, Color.gradients())
+
+    gradient_hexes =
+      raw_gradients
+      |> Color.extract_hexes()
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    formatted_lines =
+      lines
+      |> Enum.with_index(1)
+      |> Enum.map(fn {line, idx} ->
+        chunk = Convert.to_chunk(line, pos_x + idx, pos_y)
+
+        fmt_info = %FormatInfo{
+          chunks: [chunk],
+          align: align,
+          manual_tabs: 0,
+          add_line: :none,
+          animation: Keyword.get(opts, :animation, ""),
+          mode: Keyword.get(opts, :mode, :normal)
+        }
+
+        format(fmt_info)
+      end)
+
+    formatted_text = Enum.join(formatted_lines, "\n")
+    {formatted_text, gradient_hexes}
   end
 
   @spec apply_indentation([ChunkText.t()], integer()) :: [ChunkText.t()]
@@ -128,13 +192,7 @@ defmodule Aurora.Format do
   defp align_text(chunks, :right) do
     line = Enum.map_join(chunks, "", & &1.text)
     pad = max(terminal_width() - String.length(line), 0)
-
-    pad_chunk = %ChunkText{
-      text: String.duplicate(" ", pad),
-      color: Color.get_color_info(:no_color)
-    }
-
-    [pad_chunk | chunks]
+    [create_pad_chunk(pad) | chunks]
   end
 
   defp align_text(chunks, :center) do
@@ -144,17 +202,7 @@ defmodule Aurora.Format do
     left_pad = div(pad, 2)
     right_pad = pad - left_pad
 
-    left_chunk = %ChunkText{
-      text: String.duplicate(" ", left_pad),
-      color: Color.get_color_info(:no_color)
-    }
-
-    right_chunk = %ChunkText{
-      text: String.duplicate(" ", right_pad),
-      color: Color.get_color_info(:no_color)
-    }
-
-    [left_chunk | chunks] ++ [right_chunk]
+    [create_pad_chunk(left_pad) | chunks] ++ [create_pad_chunk(right_pad)]
   end
 
   defp align_text(chunks, :justify) do
@@ -195,7 +243,8 @@ defmodule Aurora.Format do
       |> Enum.map(&calculate_column_width(rows, &1))
 
     Enum.map(rows, fn row ->
-      Enum.with_index(row)
+      row
+      |> Enum.with_index()
       |> Enum.map(fn {chunk, col} ->
         pad = col_widths |> Enum.at(col) |> Kernel.-(String.length(chunk.text))
         %{chunk | text: chunk.text <> String.duplicate(" ", pad)}
@@ -252,9 +301,7 @@ defmodule Aurora.Format do
   """
   @spec visible_length(String.t()) :: non_neg_integer()
   def visible_length(str) when is_binary(str) do
-    str
-    |> String.replace(~r/\e\[[0-9;]*m/, "")
-    |> String.length()
+    str |> clean_ansi() |> String.length()
   end
 
   @doc """
@@ -320,6 +367,13 @@ defmodule Aurora.Format do
       {:ok, cols} -> cols
       _ -> 80
     end
+  end
+
+  defp create_pad_chunk(size) do
+    %ChunkText{
+      text: String.duplicate(" ", size),
+      color: Color.get_color_info(:no_color)
+    }
   end
 
   # Aplica efectos a una lista de chunks o tabla de chunks.

@@ -56,20 +56,21 @@ defmodule Aurora do
   end
 
   @doc """
-  Formatea texto con opciones básicas de color y alineación.
+  Formatea texto con opciones básicas de color, alineación y efectos.
 
-  Función "light" para uso rápido y sencillo. Para opciones avanzadas,
+  Función "light" para uso rápido y sencillo. Para opciones avanzadas como
+  posicionamiento, múltiples efectos o modos de renderizado específicos,
   usar directamente los módulos `Aurora.Format`, `Aurora.Color`, etc.
 
   ## Parámetros
 
-  - `text` - String o lista de strings
+  - `text` - String, lista de strings o struct FormatInfo
   - `opts` - Opciones básicas (opcional)
 
   ## Opciones básicas
 
   - `:color` - Color del texto (átomo como :primary, :error, etc. o hex como "#FF0000")
-  - `:align` - Alineación (:left, :right, :center)
+  - `:align` - Alineación (:left, :right, :center, :justify, :center_block)
   - `:bold` - Texto en negrita (true/false)
 
   ## Ejemplos
@@ -81,6 +82,13 @@ defmodule Aurora do
       iex> Aurora.format("Texto centrado", align: :center)
 
       iex> Aurora.format(["Línea 1", "Línea 2"], color: :info)
+
+      # Con struct FormatInfo para control total
+      iex> chunk = %Aurora.Structs.ChunkText{text: "ejemplo"}
+      iex> format_info = %Aurora.Structs.FormatInfo{chunks: [chunk], align: :justify}
+      iex> result = Aurora.format(format_info)
+      iex> String.contains?(result, "ejemplo")
+      true
   """
   @spec format(String.t() | [String.t()] | FormatInfo.t(), keyword()) :: String.t()
   def format(text, opts \\ [])
@@ -90,49 +98,40 @@ defmodule Aurora do
   end
 
   def format(text, opts) when is_binary(text) do
-    # Solo extraer opciones básicas
-    {color, opts} = Keyword.pop(opts, :color)
-    {align, opts} = Keyword.pop(opts, :align, :left)
-    {bold, _opts} = Keyword.pop(opts, :bold, false)
+    format_single_text(text, opts)
+  end
 
-    # Crear chunk básico
-    chunk_opts = [{:text, text}]
+  def format(texts, opts) when is_list(texts) do
+    format_multiple_texts(texts, opts)
+  end
 
-    chunk_opts =
-      if color, do: [{:color, Color.get_color_info(color)} | chunk_opts], else: chunk_opts
-
-    # Solo efecto bold si se especifica
-    effects = if bold, do: %Aurora.Structs.EffectInfo{bold: true}, else: nil
-    chunk_opts = if effects, do: [{:effects, effects} | chunk_opts], else: chunk_opts
-
-    chunk = struct(Aurora.Structs.ChunkText, chunk_opts)
-
-    # FormatInfo simple
+  defp format_single_text(text, opts) do
+    {color, align, effects} = extract_format_options(opts)
+    chunk = create_chunk(text, color, effects)
     format_info = %FormatInfo{chunks: [chunk], align: align}
     Format.format(format_info)
   end
 
-  def format(texts, opts) when is_list(texts) do
-    # Para listas, crear chunks individuales
-    {color, opts} = Keyword.pop(opts, :color)
-    {align, opts} = Keyword.pop(opts, :align, :left)
-    {bold, _opts} = Keyword.pop(opts, :bold, false)
-
-    effects = if bold, do: %Aurora.Structs.EffectInfo{bold: true}, else: nil
-
-    chunks =
-      Enum.map(texts, fn text ->
-        chunk_opts = [{:text, text}]
-
-        chunk_opts =
-          if color, do: [{:color, Color.get_color_info(color)} | chunk_opts], else: chunk_opts
-
-        chunk_opts = if effects, do: [{:effects, effects} | chunk_opts], else: chunk_opts
-        struct(Aurora.Structs.ChunkText, chunk_opts)
-      end)
-
+  defp format_multiple_texts(texts, opts) do
+    {color, align, effects} = extract_format_options(opts)
+    chunks = Enum.map(texts, &create_chunk(&1, color, effects))
     format_info = %FormatInfo{chunks: chunks, align: align}
     Format.format(format_info)
+  end
+
+  defp extract_format_options(opts) do
+    color = Keyword.get(opts, :color)
+    align = Keyword.get(opts, :align, :left)
+    bold = Keyword.get(opts, :bold, false)
+    effects = if bold, do: %Aurora.Structs.EffectInfo{bold: true}, else: nil
+    {color, align, effects}
+  end
+
+  defp create_chunk(text, color, effects) do
+    chunk_opts = [{:text, text}]
+    chunk_opts = if color, do: [{:color, Color.get_color_info(color)} | chunk_opts], else: chunk_opts
+    chunk_opts = if effects, do: [{:effects, effects} | chunk_opts], else: chunk_opts
+    struct(Aurora.Structs.ChunkText, chunk_opts)
   end
 
   @doc """
@@ -182,12 +181,18 @@ defmodule Aurora do
   end
 
   @doc """
-  Aplica efectos a un texto.
+  Aplica efectos ANSI a un texto.
+
+  Permite aplicar efectos individuales o múltiples efectos simultáneamente
+  como negrita, cursiva, subrayado, etc.
 
   ## Ejemplos
 
-      iex> Aurora.stylize("texto", [:bold, :underline]) |> IO.puts
-      iex> Aurora.stylize("dim", :dim) |> IO.puts
+      iex> Aurora.stylize("texto", [:bold, :underline])
+      "\\e[1m\\e[4mtexto\\e[0m"
+
+      iex> Aurora.stylize("texto tenue", :dim)
+      "\\e[2mtexto tenue\\e[0m"
   """
   @spec stylize(String.t(), [atom()] | atom()) :: String.t()
   def stylize(text, effects) when is_list(effects) do
@@ -207,13 +212,8 @@ defmodule Aurora do
   """
   @spec gradient(String.t(), String.t(), integer()) :: [String.t()]
   def gradient(start_color, end_color, steps \\ 6) do
-    if steps == 6 do
-      Color.generate_gradient_between(start_color, end_color)
-    else
-      # Si necesitamos un número diferente de pasos, usamos la función básica
-      Color.generate_gradient_between(start_color, end_color)
-      |> Enum.take(steps)
-    end
+    Color.generate_gradient_between(start_color, end_color)
+    |> Enum.take(steps)
   end
 
   @doc """
@@ -282,33 +282,25 @@ defmodule Aurora do
     compact = Keyword.get(opts, :compact, false)
     indent = Keyword.get(opts, :indent, false)
 
-    # Convertir a JSON string si no lo es ya
-    json_string =
-      case data do
-        str when is_binary(str) -> str
-        other -> Jason.encode!(other)
-      end
+    formatted_json = data
+    |> ensure_json_string()
+    |> apply_json_formatting(compact)
+    |> apply_json_indentation(indent)
 
-    # Formatear JSON
-    formatted_json =
-      if compact do
-        json_string
-      else
-        Format.pretty_json(json_string)
-      end
+    format(formatted_json, color: color)
+  end
 
-    # Aplicar indentación extra si se solicita
-    final_json =
-      if indent do
-        formatted_json
-        |> String.split("\n")
-        |> Enum.map_join("\n", &("  " <> &1))
-      else
-        formatted_json
-      end
+  defp ensure_json_string(str) when is_binary(str), do: str
+  defp ensure_json_string(other), do: Jason.encode!(other)
 
-    # Formatear con color
-    format(final_json, color: color)
+  defp apply_json_formatting(json_string, true), do: json_string
+  defp apply_json_formatting(json_string, false), do: Format.pretty_json(json_string)
+
+  defp apply_json_indentation(json, false), do: json
+  defp apply_json_indentation(json, true) do
+    json
+    |> String.split("\n")
+    |> Enum.map_join("\n", &("  " <> &1))
   end
 
   @doc """
