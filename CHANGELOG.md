@@ -30,6 +30,12 @@
 - **Funcionalidad preservada**: Todos los tests pasan sin cambios
 - **Calidad de código**: Cumple con Credo strict mode sin problemas
 
+## Versión 1.0.3 (2025-09-26)
+
+### 🔧 Refactoring
+
+- Refactor y fix de Effects. Actualizacion de documentación
+
 ## Versión 1.0.2 (2025-09-25)
 
 ### 🔧 Refactoring
