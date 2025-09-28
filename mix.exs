@@ -16,7 +16,9 @@ defmodule Aurora.MixProject do
       homepage_url: "https://hex.pm/packages/aurora",
       docs: [
         main: "readme",
-        extras: ["README.md", "LICENSE"]
+        extras: ["README.md", "LICENSE"],
+        source_ref: "v1.0.4",
+        source_url: "https://github.com/lorenzo-sf/pandr"
       ]
     ]
   end
