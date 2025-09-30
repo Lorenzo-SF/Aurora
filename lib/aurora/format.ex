@@ -85,7 +85,7 @@ defmodule Aurora.Format do
     end
   end
 
-  def add_location_to_text(text, pos_x, pos_y) do
+  def add_location_to_text(text, pos_y, pos_x) do
     "\e[#{pos_y};#{pos_x}H#{text}"
   end
 
