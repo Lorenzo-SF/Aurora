@@ -100,7 +100,7 @@ defmodule Aurora.Format do
          add_line,
          animation
        ) do
-    raw_head = %ChunkText{head | text: add_location_to_text(text, pos_x, pos_y)}
+    raw_head = %ChunkText{head | text: add_location_to_text(text, pos_y, pos_x)}
 
     raw_head
     |> Ensure.list()
