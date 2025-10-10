@@ -85,6 +85,21 @@ defmodule Aurora.Format do
     end
   end
 
+  @doc """
+  Agrega códigos ANSI de posicionamiento a un texto para renderizado en coordenadas específicas.
+
+  ## Parámetros
+
+  - `text` - El texto a posicionar
+  - `pos_y` - Coordenada Y (fila)
+  - `pos_x` - Coordenada X (columna)
+
+  ## Examples
+
+      iex> Aurora.Format.add_location_to_text("Hola", 5, 10)
+      "\\e[5;10HHola"
+  """
+  @spec add_location_to_text(String.t(), non_neg_integer(), non_neg_integer()) :: String.t()
   def add_location_to_text(text, pos_y, pos_x) do
     "\e[#{pos_y};#{pos_x}H#{text}"
   end
@@ -116,16 +131,64 @@ defmodule Aurora.Format do
   end
 
   defp format_base(chunks, add_line, animation) do
-    output =
+    processed =
       chunks
       |> apply_effects_to_chunks()
       |> Color.apply_to_chunk()
-      |> Enum.map_join("", & &1.text)
-      |> add_new_lines(add_line)
+
+    output =
+      case processed do
+        # Si es una tabla (lista de listas), aplanar y unir
+        [[%ChunkText{} | _] | _] ->
+          processed
+          |> List.flatten()
+          |> Enum.map_join("", & &1.text)
+          |> add_new_lines(add_line)
+
+        # Si es una lista simple de chunks
+        [%ChunkText{} | _] ->
+          processed
+          |> Enum.map_join("", & &1.text)
+          |> add_new_lines(add_line)
+
+        # Lista vacía o caso edge
+        _ -> ""
+      end
 
     animation <> output
   end
 
+  @doc """
+  Formatea un logo (lista de líneas de texto) aplicando colores de gradiente y alineación.
+
+  ## Parámetros
+
+  - `lines` - Lista de strings que conforman el logo
+  - `opts` - Opciones de formateo (opcional)
+
+  ## Opciones
+
+  - `:align` - Alineación del logo (`:left`, `:center`, `:right`) - default: `:left`
+  - `:mode` - Modo de renderizado (`:normal`, `:raw`) - default: `:normal`
+  - `:pos_x` - Posición X para modo raw - default: `0`
+  - `:pos_y` - Posición Y para modo raw - default: `0`
+  - `:gradient_colors` - Colores del gradiente - default: `Color.gradients()`
+  - `:animation` - String de animación opcional - default: `""`
+
+  ## Retorna
+
+  Una tupla `{formatted_text, gradient_hexes}` donde:
+  - `formatted_text` - El logo formateado con colores ANSI
+  - `gradient_hexes` - Lista de códigos hexadecimales del gradiente aplicado
+
+  ## Examples
+
+      iex> lines = ["████", "████", "████"]
+      iex> {text, _hexes} = Aurora.Format.format_logo(lines, align: :center)
+      iex> is_binary(text)
+      true
+  """
+  @spec format_logo([String.t()], keyword()) :: {String.t(), [String.t()]}
   def format_logo(lines, opts \\ []) when is_list(lines) do
     align = Keyword.get(opts, :align, :left)
     _mode = Keyword.get(opts, :mode, :normal)
@@ -280,8 +343,8 @@ defmodule Aurora.Format do
   """
   @spec clean_ansi(String.t()) :: String.t()
   def clean_ansi(str) do
-    Regex.replace(~r/\e\[[\d;?]*[a-zA-Z]/, str, "")
-    |> String.replace(~r/\eP.*?\e\\/, "")
+    # Optimized: Single regex to match both CSI sequences and OSC sequences
+    Regex.replace(~r/\e(\[[\d;?]*[a-zA-Z]|P.*?\e\\)/, str, "")
   end
 
   @doc """

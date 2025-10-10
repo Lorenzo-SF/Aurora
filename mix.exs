@@ -16,9 +16,9 @@ defmodule Aurora.MixProject do
       homepage_url: "https://hex.pm/packages/aurora",
       docs: [
         main: "readme",
-        extras: ["README.md", "LICENSE"],
+        extras: ["README.md", "CHANGELOG.md", "LICENSE"],
         source_ref: "v1.0.4",
-        source_url: "https://github.com/lorenzo-sf/pandr"
+        source_url: "https://github.com/lorenzo-sf/aurora"
       ]
     ]
   end
@@ -58,7 +58,7 @@ defmodule Aurora.MixProject do
         "GitHub" => "https://github.com/lorenzo-sf/aurora",
         "Docs" => "https://hexdocs.pm/aurora"
       },
-      files: ~w(lib mix.exs README.md LICENSE .dialyzer_ignore.exs)
+      files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE .dialyzer_ignore.exs)
     ]
   end
 

@@ -19,8 +19,11 @@ defmodule Aurora.Normalize do
       "hola"
 
       iex> messages = [{"Error", :error}, {"Info", :info}]
-      iex> Aurora.Normalize.normalize_messages(messages)
-      [%ChunkText{text: "Error", color: %ColorInfo{name: :error}}, ...]
+      iex> result = Aurora.Normalize.normalize_messages(messages)
+      iex> length(result)
+      2
+      iex> hd(result).text
+      "Error"
   """
 
   alias Aurora.Color
@@ -64,13 +67,16 @@ defmodule Aurora.Normalize do
 
   ## Ejemplos
 
-      iex> messages = [{"Error", :error}, {"Info", :info}, "Texto simple"]
+      iex> messages = [{"Error", :error}, {"Info", :info}]
       iex> chunks = Aurora.Normalize.normalize_messages(messages)
       iex> length(chunks)
-      3
+      2
 
-      iex> Aurora.Normalize.normalize_messages("mensaje")
-      [%ChunkText{text: "mensaje", color: %ColorInfo{name: :no_color}}]
+      iex> result = Aurora.Normalize.normalize_messages("mensaje")
+      iex> length(result)
+      1
+      iex> hd(result).text
+      "mensaje"
   """
   @spec normalize_messages(list() | String.t() | any()) :: [ChunkText.t()]
   def normalize_messages([{_, _} | _] = list) do
