@@ -129,7 +129,10 @@ defmodule Aurora do
 
   defp create_chunk(text, color, effects) do
     chunk_opts = [{:text, text}]
-    chunk_opts = if color, do: [{:color, Color.get_color_info(color)} | chunk_opts], else: chunk_opts
+
+    chunk_opts =
+      if color, do: [{:color, Color.get_color_info(color)} | chunk_opts], else: chunk_opts
+
     chunk_opts = if effects, do: [{:effects, effects} | chunk_opts], else: chunk_opts
     struct(Aurora.Structs.ChunkText, chunk_opts)
   end
@@ -282,10 +285,11 @@ defmodule Aurora do
     compact = Keyword.get(opts, :compact, false)
     indent = Keyword.get(opts, :indent, false)
 
-    formatted_json = data
-    |> ensure_json_string()
-    |> apply_json_formatting(compact)
-    |> apply_json_indentation(indent)
+    formatted_json =
+      data
+      |> ensure_json_string()
+      |> apply_json_formatting(compact)
+      |> apply_json_indentation(indent)
 
     format(formatted_json, color: color)
   end
@@ -297,6 +301,7 @@ defmodule Aurora do
   defp apply_json_formatting(json_string, false), do: Format.pretty_json(json_string)
 
   defp apply_json_indentation(json, false), do: json
+
   defp apply_json_indentation(json, true) do
     json
     |> String.split("\n")

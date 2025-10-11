@@ -202,7 +202,8 @@ defmodule AuroraTest do
       result = Aurora.format("Bold", bold: true)
       assert is_binary(result)
       assert String.contains?(result, "Bold")
-      assert String.contains?(result, "\e[1m") # Bold ANSI code
+      # Bold ANSI code
+      assert String.contains?(result, "\e[1m")
     end
   end
 

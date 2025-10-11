@@ -137,25 +137,34 @@ defmodule Aurora.Format do
       |> Color.apply_to_chunk()
 
     output =
-      case processed do
-        # Si es una tabla (lista de listas), aplanar y unir
-        [[%ChunkText{} | _] | _] ->
+      cond do
+        is_list(processed) and list_of_lists_of_chunks?(processed) ->
           processed
           |> List.flatten()
           |> Enum.map_join("", & &1.text)
           |> add_new_lines(add_line)
 
-        # Si es una lista simple de chunks
-        [%ChunkText{} | _] ->
+        is_list(processed) and list_of_chunks?(processed) ->
           processed
           |> Enum.map_join("", & &1.text)
           |> add_new_lines(add_line)
 
-        # Lista vacía o caso edge
-        _ -> ""
+        true ->
+          ""
       end
 
     animation <> output
+  end
+
+  defp list_of_chunks?(list) do
+    is_list(list) and Enum.all?(list, &match?(%ChunkText{}, &1))
+  end
+
+  defp list_of_lists_of_chunks?(list) do
+    is_list(list) and
+      Enum.all?(list, fn inner ->
+        is_list(inner) and Enum.all?(inner, &match?(%ChunkText{}, &1))
+      end)
   end
 
   @doc """

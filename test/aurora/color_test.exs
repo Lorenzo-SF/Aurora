@@ -454,6 +454,7 @@ defmodule Aurora.ColorTest do
 
     test "applies color to list of chunks" do
       color = %ColorInfo{hex: "#FF0000"}
+
       chunks = [
         %Aurora.Structs.ChunkText{text: "First", color: color},
         %Aurora.Structs.ChunkText{text: "Second", color: color}

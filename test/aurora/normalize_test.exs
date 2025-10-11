@@ -199,6 +199,7 @@ defmodule Aurora.NormalizeTest do
 
     test "preserves ChunkText properties" do
       color = %ColorInfo{name: :primary, hex: "#FF0000"}
+
       rows = [
         [%ChunkText{text: "A", color: color}]
       ]
@@ -252,7 +253,7 @@ defmodule Aurora.NormalizeTest do
 
       # The visible length should be same (3), but actual string length differs
       assert String.length(String.replace(first_cell, ~r/\e\[[0-9;]*m/, "")) ==
-             String.length(String.replace(second_cell, ~r/\e\[[0-9;]*m/, ""))
+               String.length(String.replace(second_cell, ~r/\e\[[0-9;]*m/, ""))
     end
 
     test "handles unicode characters correctly" do

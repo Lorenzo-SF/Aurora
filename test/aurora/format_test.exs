@@ -362,6 +362,7 @@ defmodule Aurora.FormatTest do
         %ChunkText{text: "word2"},
         %ChunkText{text: "word3"}
       ]
+
       format_info = %FormatInfo{chunks: chunks, align: :justify}
 
       result = Aurora.Format.format(format_info)

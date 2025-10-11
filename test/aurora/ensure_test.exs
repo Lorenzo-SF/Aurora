@@ -105,7 +105,8 @@ defmodule Aurora.EnsureTest do
 
     test "returns :ok for other types" do
       assert Ensure.atom(123) == :ok
-      assert Ensure.atom(nil) == nil  # nil is already an atom
+      # nil is already an atom
+      assert Ensure.atom(nil) == nil
     end
   end
 
