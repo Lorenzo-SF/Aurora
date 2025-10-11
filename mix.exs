@@ -4,7 +4,7 @@ defmodule Aurora.MixProject do
   def project do
     [
       app: :aurora,
-      version: "1.0.4",
+      version: "1.0.5",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -36,7 +36,7 @@ defmodule Aurora.MixProject do
       {:propcheck, "~> 1.4", only: :test},
       {:credo, "~> 1.7.11", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.34", runtime: false},
       {:jason, "~> 1.4"}
     ]
   end
@@ -78,6 +78,18 @@ defmodule Aurora.MixProject do
         "compile --warnings-as-errors",
         "cmd MIX_ENV=test mix test",
         "credo --strict"
+      ],
+      hex_prepare: [
+        "clean",
+        "compile --force --warnings-as-errors",
+        "format",
+        "test",
+        "docs",
+        "cmd mix hex.build"
+      ],
+      hex_publish: [
+        "hex.prepare",
+        "cmd mix hex.publish --dry-run"
       ]
     ]
   end

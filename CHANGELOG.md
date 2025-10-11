@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## Versión 1.0.5 (2025-10-11)
+
+### ✨ Mejoras generales
+
+- **Normalización del código y ampliación de la documentación técnica.**
+- **Incorporación de nuevos tests para reforzar la cobertura.**
+- **Formateo completo del código siguiendo las reglas de estilo estándar de Elixir (mix format).**
+
+### 🐛 Correcciones
+
+- **Solucionado bug en add_location_to_text que afectaba al posicionamiento del texto.**
+- **Recolocados los parámetros de add_location_to_text para mayor consistencia y legibilidad.**
+
+### 📚 Documentación
+
+- **Actualizado mix.exs para incluir metadatos y configuración de generación de documentación con ex_doc.**
+
 ## Versión 1.0.4 (2025-09-27)
 
 ### 🔧 Optimizaciones y Refactoring
