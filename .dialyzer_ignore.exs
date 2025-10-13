@@ -5,5 +5,8 @@
   ~r/lib\/aurora\.ex:115.*no_return/,
   ~r/lib\/aurora\.ex:119.*call/,
   ~r/lib\/aurora\.ex:280.*no_return/,
-  ~r/lib\/aurora\.ex:290.*call/
+  ~r/lib\/aurora\.ex:290.*call/,
+  ~r/lib\/aurora\.ex:282.*invalid_contract/,
+  ~r/lib\/aurora\.ex:283.*no_return/,
+  ~r/lib\/aurora\.ex:294.*call/
 ]

@@ -5,7 +5,7 @@ defmodule Aurora.MixProject do
     [
       app: :aurora,
       version: "1.0.5",
-      elixir: "~> 1.18",
+      elixir: "~> 1.18.4-otp-28",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
@@ -19,13 +19,59 @@ defmodule Aurora.MixProject do
         extras: ["README.md", "CHANGELOG.md", "LICENSE"],
         source_ref: "v1.0.4",
         source_url: "https://github.com/lorenzo-sf/aurora"
-      ]
+      ],
+      escript: [main_module: Aurora.CLI]
     ]
   end
 
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp aliases do
+    [
+      gen: [
+        "escript.build",
+        "deploy"
+      ],
+      deploy: fn _ ->
+        dest_dir = Path.expand("~/.Ypsilon")
+        File.mkdir_p!(dest_dir)
+        File.cp!("aurora", Path.join(dest_dir, "aurora"))
+        IO.puts("✅ Escript instalado en #{dest_dir}/aurora")
+      end,
+      credo: ["format --check-formatted", "credo --strict --format=oneline"],
+      quality: [
+        "deps.get",
+        "clean",
+        "compile --warnings-as-errors",
+        "cmd MIX_ENV=test mix test",
+        "credo --strict",
+        "dialyzer",
+        "cmd 'echo \\\"quality terminado\"'"
+      ],
+      ci: [
+        "deps.get",
+        "clean",
+        "compile --warnings-as-errors",
+        "cmd MIX_ENV=test mix test",
+        "credo --strict",
+        "cmd 'echo \\\"terminado terminado\"'"
+      ],
+      hex_prepare: [
+        "clean",
+        "compile --force --warnings-as-errors",
+        "format",
+        "test",
+        "docs",
+        "cmd mix hex.build"
+      ],
+      hex_publish: [
+        "hex_prepare",
+        "cmd mix hex.publish"
+      ]
     ]
   end
 
@@ -41,9 +87,15 @@ defmodule Aurora.MixProject do
     ]
   end
 
+  def escript do
+    [
+      main_module: Aurora.CLI
+    ]
+  end
+
   defp description do
     """
-    Aurora ofrece herramientas para formateo de textos en terminal, incluyendo
+    Aurora ofrece herramientas para formateo ANSI de textos en terminal, incluyendo
     colores, alineación y la capacidad de procesar textos en bloques o por trozos.
     Ideal para crear interfaces CLI/TUI limpias y dinámicas.
     """
@@ -59,38 +111,6 @@ defmodule Aurora.MixProject do
         "Docs" => "https://hexdocs.pm/aurora"
       },
       files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE .dialyzer_ignore.exs)
-    ]
-  end
-
-  defp aliases do
-    [
-      quality: [
-        "deps.get",
-        "clean",
-        "compile --warnings-as-errors",
-        "cmd MIX_ENV=test mix test",
-        "credo --strict",
-        "dialyzer"
-      ],
-      ci: [
-        "deps.get",
-        "clean",
-        "compile --warnings-as-errors",
-        "cmd MIX_ENV=test mix test",
-        "credo --strict"
-      ],
-      hex_prepare: [
-        "clean",
-        "compile --force --warnings-as-errors",
-        "format",
-        "test",
-        "docs",
-        "cmd mix hex.build"
-      ],
-      hex_publish: [
-        "hex.prepare",
-        "cmd mix hex.publish --dry-run"
-      ]
     ]
   end
 end

@@ -2,7 +2,9 @@
 
 > _"Porque la vida es muy corta para terminales en blanco y negro"_
 
-🌈 **La biblioteca más simpática para hacer que tu terminal se vea increíble**
+🌈 **Sistema de formateo y rendering para terminales coloridas**
+
+**Nivel 1A de Proyecto Ypsilon** - Librería base sin dependencias para formateo, colores ANSI y rendering de texto.
 
 ¿Cansado de ver texto aburrido en tu terminal? ¿Quieres que tus logs tengan más estilo que un influencer en Instagram? **Aurora** es tu nuevo mejor amigo. Convierte tu terminal del equivalente digital de una pared gris en un festival de colores y efectos que hasta tu gato querrá ver.
 
@@ -47,14 +49,43 @@ config :aurora, :colors,
 
 Ver [configuración completa](#-configuración-personalizada-de-colores) más abajo.
 
+## Arquitectura
+
+Aurora forma parte de **Proyecto Ypsilon**:
+
+```
+                    ┌─────────────────┐
+                    │   NIVEL 3: ARK  │
+                    │  Microframework │
+                    │     Global      │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │  NIVEL 2: AEGIS  │
+                    │  CLI/TUI         │
+                    │  Framework       │
+                    └────┬─────┬───────┘
+                         │     │
+           ┌─────────────┘     └─────────────┐
+           │                                 │
+    ┌──────▼────────┐              ┌─────────▼──────┐
+    │ NIVEL 1A:     │              │ NIVEL 1B:      │
+    │ AURORA        │              │ ARGOS          │
+    │ Formatting &  │              │ Execution &    │
+    │ Rendering     │              │ Orchestration  │
+    └───────────────┘              └────────────────┘
+         BASE                              BASE
+      (sin deps) ← ESTÁS AQUÍ           (sin deps)
+```
+
 ## 📋 Funciones Disponibles - Referencia Rápida
 
 ### 🎯 Funciones Básicas (en Aurora.ex)
 
-| Función             | Descripción                              | Ejemplo                                   |
-| ------------------- | ---------------------------------------- | ----------------------------------------- |
-| `Aurora.format/2`   | Formateo con color, align, bold y más   | `Aurora.format("texto", color: :primary)` |
-| `Aurora.colorize/2` | Solo aplicar color                       | `Aurora.colorize("texto", :error)`        |
+| Función             | Descripción                                   | Ejemplo                                        |
+| ------------------- | --------------------------------------------- | ---------------------------------------------- |
+| `Aurora.format/2`   | Formateo con color, align, bold y más         | `Aurora.format("texto", color: :primary)`      |
+| `Aurora.colorize/2` | Solo aplicar color                            | `Aurora.colorize("texto", :error)`             |
 | `Aurora.stylize/2`  | Aplicar efectos ANSI (individuales/múltiples) | `Aurora.stylize("texto", [:bold, :underline])` |
 
 ### 📊 Datos Estructurados (en Aurora.ex)
@@ -99,11 +130,11 @@ Aurora.format("Color custom", color: "#FF6B35") |> IO.puts()
 
 ### Opciones básicas de `Aurora.format/2`
 
-| Opción   | Valores                                              | Descripción          |
-| -------- | ---------------------------------------------------- | -------------------- |
-| `:color` | `:primary`, `:error`, `:success`, etc. o `"#FF0000"` | Color del texto      |
+| Opción   | Valores                                                   | Descripción          |
+| -------- | --------------------------------------------------------- | -------------------- |
+| `:color` | `:primary`, `:error`, `:success`, etc. o `"#FF0000"`      | Color del texto      |
 | `:align` | `:left`, `:right`, `:center`, `:justify`, `:center_block` | Alineación del texto |
-| `:bold`  | `true`/`false`                                       | Texto en negrita     |
+| `:bold`  | `true`/`false`                                            | Texto en negrita     |
 
 ## 🔧 Funciones Especializadas (para casos avanzados)
 
@@ -572,6 +603,30 @@ mix test --exclude deprecated
 ## 📦 Dependencias
 
 - `:jason` - Para formateo de JSON (incluida automáticamente)
+
+## 🖥️ Uso como CLI
+
+Aurora también puede usarse como una herramienta de línea de comandos independiente:
+
+```bash
+# Formatear texto con color
+aurora format "Hola mundo" --color primary
+
+# Aplicar color a texto
+aurora colorize "Texto rojo" --color error
+
+# Aplicar efectos
+aurora stylize "Texto en negrita" --effects bold
+
+# Formatear JSON
+aurora json '{"name": "Juan"}' --color info
+
+# Listar colores disponibles
+aurora colors
+
+# Listar efectos disponibles
+aurora effects
+```
 
 ## 📄 Licencia
 

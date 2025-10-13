@@ -9,7 +9,7 @@ alias Aurora.Structs.{ChunkText, ColorInfo, FormatInfo}
 sample_texts = [
   "Texto corto",
   "Este es un texto de longitud media que incluye varios caracteres",
-  String.duplicate("Texto muy largo repetido múltiples veces. ", 50)
+  String.duplicate("Texto muy largos repetido múltiples veces. ", 50)
 ]
 
 sample_colors = [:primary, :secondary, :error, :success, :warning, :info]
