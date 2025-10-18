@@ -34,7 +34,7 @@ defmodule Aurora.Convert do
       "Hola"
   """
 
-  alias Aurora.{Color, Ensure}
+  alias Aurora.{Color, Ensure, Format}
   alias Aurora.Structs.ChunkText
 
   @doc """
@@ -308,6 +308,6 @@ defmodule Aurora.Convert do
   defp transpose(rows), do: Enum.zip(rows) |> Enum.map(&Tuple.to_list/1)
 
   defp visible_length(str) when is_binary(str) do
-    Aurora.Format.visible_length(str)
+    Format.visible_length(str)
   end
 end

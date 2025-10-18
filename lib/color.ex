@@ -164,6 +164,7 @@ defmodule Aurora.Color do
   def extract_hex(%{} = map), do: Map.get(map, :hex, "")
   def extract_hex({_, v}) when is_binary(v), do: v
   def extract_hex(v) when is_binary(v), do: v
+  def extract_hex(v) when is_atom(v), do: get_color_info(v).hex
   def extract_hex(v), do: to_string(v)
 
   @doc """

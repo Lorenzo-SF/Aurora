@@ -178,7 +178,6 @@ defmodule Aurora.Format do
   ## Opciones
 
   - `:align` - Alineación del logo (`:left`, `:center`, `:right`) - default: `:left`
-  - `:mode` - Modo de renderizado (`:normal`, `:raw`) - default: `:normal`
   - `:pos_x` - Posición X para modo raw - default: `0`
   - `:pos_y` - Posición Y para modo raw - default: `0`
   - `:gradient_colors` - Colores del gradiente - default: `Color.gradients()`
@@ -200,7 +199,6 @@ defmodule Aurora.Format do
   @spec format_logo([String.t()], keyword()) :: {String.t(), [String.t()]}
   def format_logo(lines, opts \\ []) when is_list(lines) do
     align = Keyword.get(opts, :align, :left)
-    _mode = Keyword.get(opts, :mode, :normal)
     pos_x = Keyword.get(opts, :pos_x, 0)
     pos_y = Keyword.get(opts, :pos_y, 0)
     raw_gradients = Keyword.get(opts, :gradient_colors, Color.gradients())
@@ -208,6 +206,7 @@ defmodule Aurora.Format do
     gradient_hexes =
       raw_gradients
       |> Color.extract_hexes()
+      |> Color.expand_gradient_colors()
       |> Enum.map(&String.trim/1)
       |> Enum.reject(&(&1 == ""))
 
@@ -222,8 +221,7 @@ defmodule Aurora.Format do
           align: align,
           manual_tabs: 0,
           add_line: :none,
-          animation: Keyword.get(opts, :animation, ""),
-          mode: Keyword.get(opts, :mode, :normal)
+          animation: Keyword.get(opts, :animation, "")
         }
 
         format(fmt_info)
