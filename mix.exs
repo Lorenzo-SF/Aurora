@@ -49,7 +49,7 @@ defmodule Aurora.MixProject do
         "compile --warnings-as-errors",
         "cmd 'echo \"✅ mix compile terminado\"'",
         "cmd MIX_ENV=test mix test",
-        "cmd 'echo \"✅ mix test terminado\"'",he
+        "cmd 'echo \"✅ mix test terminado\"'",
         "credo --strict",
         "cmd 'echo \"✅ mix credo terminado\"'",
         "dialyzer",
