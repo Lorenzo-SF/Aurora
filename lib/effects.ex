@@ -18,6 +18,7 @@ defmodule Aurora.Effects do
   - `:reverse` - Colores invertidos
   - `:hidden` - Texto oculto
   - `:strikethrough` - Texto tachado
+  - `:link` - Texto como enlace (underline)
 
   ## Uso básico
 
@@ -26,8 +27,13 @@ defmodule Aurora.Effects do
 
       iex> Aurora.Effects.apply_multiple_effects("texto", [:bold, :underline])
       "\\e[1m\\e[4mtexto\\e[0m"
+
+      iex> effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+      iex> Aurora.Effects.apply_effect_info("texto", effects)
+      "\\e[3m\\e[1mtexto\\e[0m"
   """
 
+  alias Aurora.Ensure
   alias Aurora.Structs.{ChunkText, EffectInfo}
 
   @reset "\e[0m"
@@ -40,7 +46,9 @@ defmodule Aurora.Effects do
     blink: "\e[5m",
     reverse: "\e[7m",
     hidden: "\e[8m",
-    strikethrough: "\e[9m"
+    strikethrough: "\e[9m",
+    # Mismo código que underline para enlaces
+    link: "\e[4m"
   }
 
   @doc """
@@ -58,9 +66,14 @@ defmodule Aurora.Effects do
 
       iex> Aurora.Effects.apply_effect("Mundo", :underline)
       "\\e[4mMundo\\e[0m"
+
+      iex> Aurora.Effects.apply_effect("Texto", :invalid)
+      "Texto"
   """
   @spec apply_effect(String.t(), atom()) :: String.t()
   def apply_effect(text, effect) when is_atom(effect) do
+    text = Ensure.string(text)
+
     case Map.get(@effects, effect) do
       nil -> text
       code -> "#{code}#{text}#{@reset}"
@@ -79,9 +92,17 @@ defmodule Aurora.Effects do
 
       iex> Aurora.Effects.apply_multiple_effects("texto", [:bold, :underline])
       "\\e[1m\\e[4mtexto\\e[0m"
+
+      iex> Aurora.Effects.apply_multiple_effects("texto", [])
+      "texto"
+
+      iex> Aurora.Effects.apply_multiple_effects("texto", [:bold, :invalid])
+      "\\e[1mtexto\\e[0m"
   """
   @spec apply_multiple_effects(String.t(), [atom()]) :: String.t()
   def apply_multiple_effects(text, effects) when is_list(effects) do
+    text = Ensure.string(text)
+
     codes =
       effects
       |> Enum.map(&Map.get(@effects, &1))
@@ -103,15 +124,22 @@ defmodule Aurora.Effects do
 
       iex> Aurora.Effects.apply_effects("texto", [bold: true, italic: true])
       "\\e[1m\\e[3mtexto\\e[0m"
-  """
-  @spec apply_effects(String.t(), list()) :: String.t()
 
+      iex> Aurora.Effects.apply_effects("texto", [bold: false, italic: true])
+      "\\e[3mtexto\\e[0m"
+
+      iex> Aurora.Effects.apply_effects("texto", [])
+      "texto"
+  """
+  @spec apply_effects(String.t(), keyword() | list()) :: String.t()
   def apply_effects(text, opts) when is_list(opts) do
+    text = Ensure.string(text)
+
     effects_to_apply =
       opts
       |> Enum.filter(fn {_key, value} -> value == true end)
       |> Enum.map(fn {key, _value} -> key end)
-      |> Enum.filter(fn key -> Map.has_key?(@effects, key) end)
+      |> Enum.filter(&valid_effect?/1)
 
     apply_multiple_effects(text, effects_to_apply)
   end
@@ -121,13 +149,12 @@ defmodule Aurora.Effects do
 
   ## Ejemplos
 
-      iex> effects = Aurora.Effects.available_effects()
-      iex> Enum.sort(effects)
-      [:blink, :bold, :dim, :hidden, :italic, :reverse, :strikethrough, :underline]
+    iex> Aurora.Effects.available_effects()
+    [:blink, :bold, :dim, :hidden, :italic, :link, :reverse, :strikethrough, :underline]
   """
   @spec available_effects() :: [atom()]
   def available_effects do
-    Map.keys(@effects)
+    Map.keys(@effects) |> Enum.sort()
   end
 
   @doc """
@@ -138,12 +165,38 @@ defmodule Aurora.Effects do
       iex> Aurora.Effects.valid_effect?(:bold)
       true
 
+      iex> Aurora.Effects.valid_effect?(:underline)
+      true
+
       iex> Aurora.Effects.valid_effect?(:invalid)
       false
   """
   @spec valid_effect?(atom()) :: boolean()
   def valid_effect?(effect) do
     Map.has_key?(@effects, effect)
+  end
+
+  @doc """
+  Obtiene el código ANSI para un efecto específico.
+
+  ## Parámetros
+
+  - `effect` - El efecto del que obtener el código
+
+  ## Ejemplos
+
+      iex> Aurora.Effects.get_effect_code(:bold)
+      "\\e[1m"
+
+      iex> Aurora.Effects.get_effect_code(:underline)
+      "\\e[4m"
+
+      iex> Aurora.Effects.get_effect_code(:invalid)
+      nil
+  """
+  @spec get_effect_code(atom()) :: String.t() | nil
+  def get_effect_code(effect) do
+    Map.get(@effects, effect)
   end
 
   @doc """
@@ -163,12 +216,24 @@ defmodule Aurora.Effects do
       iex> no_effects = %Aurora.Structs.EffectInfo{}
       iex> Aurora.Effects.apply_effect_info("texto", no_effects)
       "texto"
+
+      iex> multiple_effects = %Aurora.Structs.EffectInfo{bold: true, italic: true, underline: true}
+      iex> result = Aurora.Effects.apply_effect_info("texto", multiple_effects)
+      iex> String.contains?(result, "\\e[1m")
+      true
+      iex> String.contains?(result, "\\e[3m")
+      true
+      iex> String.contains?(result, "\\e[4m")
+      true
   """
-  @spec apply_effect_info(String.t(), EffectInfo.t()) :: String.t()
+  @spec apply_effect_info(String.t(), EffectInfo.t() | nil) :: String.t()
   def apply_effect_info(text, %EffectInfo{} = effect_info) do
+    text = Ensure.string(text)
     effects_to_apply = extract_active_effects(effect_info)
     apply_multiple_effects(text, effects_to_apply)
   end
+
+  def apply_effect_info(text, nil), do: Ensure.string(text)
 
   @doc """
   Aplica efectos a un ChunkText que ya contiene información de efectos.
@@ -184,8 +249,13 @@ defmodule Aurora.Effects do
       iex> effects = %Aurora.Structs.EffectInfo{bold: true}
       iex> chunk = %Aurora.Structs.ChunkText{text: "texto", effects: effects}
       iex> result = Aurora.Effects.apply_chunk_effects(chunk)
+      iex> String.contains?(result.text, "\\e[1m")
+      true
+
+      iex> chunk = %Aurora.Structs.ChunkText{text: "texto", effects: nil}
+      iex> result = Aurora.Effects.apply_chunk_effects(chunk)
       iex> result.text
-      "\\e[1mtexto\\e[0m"
+      "texto"
   """
   @spec apply_chunk_effects(ChunkText.t()) :: ChunkText.t()
   def apply_chunk_effects(%ChunkText{effects: nil} = chunk) do
@@ -198,6 +268,62 @@ defmodule Aurora.Effects do
     %{chunk | text: formatted_text}
   end
 
+  def apply_chunk_effects(chunk) do
+    # Handle non-ChunkText input by converting first
+    chunk = Ensure.chunk_text(chunk)
+    apply_chunk_effects(chunk)
+  end
+
+  @doc """
+  Aplica efectos a una lista de ChunkText.
+
+  ## Parámetros
+
+  - `chunks` - Lista de ChunkText a procesar
+
+  ## Ejemplos
+
+      iex> effects = %Aurora.Structs.EffectInfo{bold: true}
+      iex> chunks = [
+      ...>   %Aurora.Structs.ChunkText{text: "uno", effects: effects},
+      ...>   %Aurora.Structs.ChunkText{text: "dos", effects: nil}
+      ...> ]
+      iex> result = Aurora.Effects.apply_chunks_effects(chunks)
+      iex> length(result)
+      2
+      iex> String.contains?(hd(result).text, "\\e[1m")
+      true
+  """
+  @spec apply_chunks_effects([ChunkText.t()]) :: [ChunkText.t()]
+  def apply_chunks_effects(chunks) when is_list(chunks) do
+    Enum.map(chunks, &apply_chunk_effects/1)
+  end
+
+  @doc """
+  Remueve todos los efectos ANSI de un texto.
+
+  ## Parámetros
+
+  - `text` - Texto que puede contener códigos ANSI
+
+  ## Ejemplos
+
+      iex> Aurora.Effects.remove_effects("\\e[1mtexto\\e[0m")
+      "texto"
+
+      iex> Aurora.Effects.remove_effects("\\e[1m\\e[3mtexto\\e[0m")
+      "texto"
+
+      iex> Aurora.Effects.remove_effects("texto normal")
+      "texto normal"
+  """
+  @spec remove_effects(String.t()) :: String.t()
+  def remove_effects(text) do
+    text
+    |> Ensure.string()
+    |> String.replace(~r/\e\[[0-9;]*m/, "")
+  end
+
   # Función privada para extraer efectos activos de EffectInfo
   @spec extract_active_effects(EffectInfo.t()) :: [atom()]
   defp extract_active_effects(%EffectInfo{} = effect_info) do
@@ -205,6 +331,6 @@ defmodule Aurora.Effects do
     |> Map.from_struct()
     |> Enum.filter(fn {_key, value} -> value == true end)
     |> Enum.map(fn {key, _value} -> key end)
-    |> Enum.filter(fn key -> Map.has_key?(@effects, key) end)
+    |> Enum.filter(&valid_effect?/1)
   end
 end

@@ -1,430 +1,531 @@
 defmodule Aurora.Color do
   @moduledoc """
-  Módulo para manejo de colores en terminal con soporte ANSI.
+  Sistema completo de gestión de colores con soporte para múltiples formatos.
 
-  Este módulo proporciona funcionalidades completas para trabajar con colores
-  en terminal, incluyendo colores predefinidos, colores personalizados en formato
-  hexadecimal, conversiones RGB y generación de gradientes.
+  Proporciona conversión entre formatos de color (HEX, RGB, HSV, HSL, CMYK, ARGB),
+  aplicación de colores ANSI en terminal, y manipulación de colores (aclarar/oscurecer).
 
-  ## Características principales
+  ## Características
 
-  - Colores predefinidos del sistema
-  - Soporte para colores hexadecimales
-  - Conversión RGB a códigos ANSI
-  - Generación de gradientes de color
-  - Inversión de colores
-  - Aplicación de colores a texto
+  - Conversión automática entre formatos de color
+  - Aplicación de colores ANSI para terminal
+  - Manipulación de luminosidad (aclarar/oscurecer)
+  - Soporte para colores invertidos
+  - Gestión de paletas de colores configurables
+  - Sistema de gradientes expandibles
 
-  ## Colores predefinidos
+  ## Formatos Soportados
 
-  El sistema incluye los siguientes colores predefinidos:
+  - **HEX**: `"#FF0000"`, `"#A1E7FA"`
+  - **RGB**: `{255, 0, 0}`
+  - **ARGB**: `{255, 255, 0, 0}`
+  - **HSV**: `{0.0, 1.0, 1.0}` (Hue, Saturation, Value)
+  - **HSL**: `{0.0, 1.0, 0.5}` (Hue, Saturation, Lightness)
+  - **CMYK**: `{0.0, 1.0, 1.0, 0.0}` (Cyan, Magenta, Yellow, Key/Black)
+  - **Átomo**: `:primary`, `:error`, `:success`, etc.
+  - **Struct**: `%ColorInfo{}`
 
-  - `:primary` - Azul principal
-  - `:secondary` - Cian secundario
-  - `:ternary` - Magenta terciario
-  - `:quaternary` - Amarillo cuaternario
-  - `:success` - Verde para éxito
-  - `:warning` - Amarillo para advertencias
-  - `:error` - Rojo para errores
-  - `:info` - Azul para información
-  - `:debug` - Gris para debug
-  - `:menu` - Color para menús
-  - `:no_color` - Sin color
+  ## Uso Básico
 
-  ## Uso básico
+      # Conversión automática de formato
+      color = Aurora.Color.to_color_info("#FF0000")
+      color = Aurora.Color.to_color_info({255, 0, 0})
+      color = Aurora.Color.to_color_info(:primary)
 
-      iex> color = Aurora.Color.resolve_color(:primary)
-      iex> Aurora.Color.apply_color("Texto", color)
+      # Aplicar color a texto
+      texto_coloreado = Aurora.Color.apply_color("¡Hola!", :primary)
 
-      iex> custom_color = Aurora.Color.resolve_color("#FF0000")
-      iex> Aurora.Color.apply_color("Rojo", custom_color)
+      # Manipular luminosidad
+      color_claro = Aurora.Color.aclarar(color, 2)   # 2 tonos más claro
+      color_oscuro = Aurora.Color.oscurecer(color, 3) # 3 tonos más oscuro
 
-  ## Gradientes
+      # Convertir entre formatos
+      rgb = Aurora.Color.hex_to_rgb("#FF0000")      # {255, 0, 0}
+      hex = Aurora.Color.rgb_to_hex({255, 0, 0})    # "#FF0000"
+      hsv = Aurora.Color.rgb_to_hsv({255, 0, 0})    # {0.0, 1.0, 1.0}
 
-      iex> gradient = Aurora.Color.generate_gradient_between("#FF0000", "#00FF00")
-      iex> length(gradient)
-      6
+  ## Configuración
+
+  Los colores se configuran en `config/config.exs`:
+
+      config :aurora, :colors,
+        colors: %{
+          primary: %{hex: "#A1E7FA", ...},
+          error: %{hex: "#FF5555", ...}
+        },
+        gradients: %{
+          fire: [...],
+          ocean: [...]
+        }
+
+  ## Struct ColorInfo
+
+  Todas las conversiones devuelven un struct `%ColorInfo{}` que contiene:
+
+  - `hex` - Representación hexadecimal
+  - `rgb` - Tupla RGB
+  - `argb` - Tupla ARGB (con alpha)
+  - `hsv` - Tupla HSV
+  - `hsl` - Tupla HSL
+  - `cmyk` - Tupla CMYK
+  - `name` - Nombre del color (si aplica)
+  - `inverted` - Boolean indicando si está invertido
   """
 
   alias Aurora.Structs.{ChunkText, ColorInfo}
 
-  @colors Application.compile_env(:aurora, :colors)[:colors]
-  @gradients Application.compile_env(:aurora, :colors)[:gradients]
+  @colors_config Application.compile_env(:aurora, :colors)[:colors]
+  @gradients_config Application.compile_env(:aurora, :colors)[:gradients]
+
+  # ========== CONVERSIONES ENTRE FORMATOS ==========
 
   @doc """
-  Devuelve un ColorInfo con valores por defecto (sin color).
-
-  ## Examples
-
-      iex> Aurora.Color.get_default_color()
-      %Aurora.Structs.ColorInfo{}
+  Convierte hexadecimal a RGB.
   """
-  @spec get_default_color() :: ColorInfo.t()
-  def get_default_color, do: %ColorInfo{}
-
-  defp build_color_map(config) when is_map(config) do
-    config
-    |> Enum.map(fn {name, %{hex: hex}} ->
-      {name, %ColorInfo{name: name, hex: normalize_hex(hex), inverted: false}}
-    end)
-    |> Map.new()
-  end
-
-  @doc """
-  Devuelve el mapa de colores predefinidos del sistema.
-
-  ## Examples
-
-      iex> colors = Aurora.Color.colors()
-      iex> Map.has_key?(colors, :primary)
-      true
-  """
-  @spec colors() :: %{atom() => ColorInfo.t()}
-  def colors, do: build_color_map(@colors)
-
-  @doc """
-  Devuelve el mapa de gradientes predefinidos del sistema.
-
-  ## Examples
-
-      iex> gradients = Aurora.Color.gradients()
-      iex> is_map(gradients)
-      true
-  """
-  @spec gradients() :: %{atom() => ColorInfo.t()}
-  def gradients, do: build_color_map(@gradients)
-
-  @doc """
-  Devuelve el mapa de todos los colores y gradientes disponibles.
-
-  ## Examples
-
-      iex> all_colors = Aurora.Color.get_all_colors()
-      iex> Map.has_key?(all_colors, :primary)
-      true
-  """
-  @spec get_all_colors() :: %{atom() => ColorInfo.t()}
-  def get_all_colors do
-    Map.merge(colors(), gradients())
-  end
-
-  @deprecated "Use get_all_colors/0 instead"
-  @spec all_colors_availables() :: %{atom() => ColorInfo.t()}
-  def all_colors_availables, do: get_all_colors()
-
-  @doc """
-  Dado un atom o hex string, devuelve el ColorInfo si está o es válido.
-
-  ## Examples
-
-      iex> color = Aurora.Color.get_color_info(:primary)
-      iex> color.name
-      :primary
-
-      iex> color = Aurora.Color.get_color_info("#FF0000")
-      iex> color.hex
-      "#FF0000"
-  """
-  @spec get_color_info(atom() | String.t() | any()) :: ColorInfo.t()
-  def get_color_info(atom) when is_atom(atom) do
-    case Map.get(get_all_colors(), atom) do
-      nil -> get_color_info(:no_color)
-      %ColorInfo{} = ci -> ci
-    end
-  end
-
-  def get_color_info(hex) when is_binary(hex) do
-    if valid_hex?(hex) do
-      %ColorInfo{name: nil, hex: normalize_hex(hex), inverted: false}
-    else
-      get_color_info(:no_color)
-    end
-  end
-
-  def get_color_info(_), do: get_color_info(:no_color)
-
-  @doc """
-  Extrae los valores hexadecimales de una lista o mapa de colores.
-  """
-  @spec extract_hexes([any()] | map() | any()) :: [String.t()]
-  def extract_hexes(raw_gradients) when is_list(raw_gradients),
-    do: Enum.map(raw_gradients, &extract_hex(&1))
-
-  def extract_hexes(%{} = raw_gradients),
-    do: raw_gradients |> Map.values() |> Enum.map(&extract_hex(&1))
-
-  def extract_hexes(raw_gradients), do: [extract_hex(raw_gradients)]
-
-  @doc """
-  Extrae el valor hexadecimal de un ColorInfo, tupla, mapa o string.
-  """
-  @spec extract_hex(ColorInfo.t() | {any(), any()} | map() | String.t() | any()) :: String.t()
-  def extract_hex(%ColorInfo{hex: hex}), do: hex
-  def extract_hex({_, %ColorInfo{hex: hex}}), do: hex
-  def extract_hex(%{} = map), do: Map.get(map, :hex, "")
-  def extract_hex({_, v}) when is_binary(v), do: v
-  def extract_hex(v) when is_binary(v), do: v
-  def extract_hex(v) when is_atom(v), do: get_color_info(v).hex
-  def extract_hex(v), do: to_string(v)
-
-  @doc """
-  Expande una lista de colores para que siempre tenga 6 elementos (gradiente completo).
-  """
-  @spec expand_gradient_colors([any()] | any()) :: [ColorInfo.t()]
-  def expand_gradient_colors(colors) when is_list(colors) do
-    case length(colors) do
-      1 -> List.duplicate(Enum.at(colors, 0), 6)
-      2 -> expand_by_duplication(colors, [3, 3])
-      3 -> expand_by_duplication(colors, [2, 2, 2])
-      4 -> expand_by_pattern(colors, [0, 0, 1, 2, 3, 3])
-      5 -> expand_by_pattern(colors, [0, 1, 2, 2, 3, 4])
-      6 -> colors
-      _ -> List.duplicate(get_color_info(:no_color), 6)
-    end
-  end
-
-  def expand_gradient_colors(_), do: List.duplicate(get_color_info(:no_color), 6)
-
-  defp expand_by_duplication(colors, counts) do
-    colors
-    |> Enum.zip(counts)
-    |> Enum.flat_map(fn {color, count} -> List.duplicate(color, count) end)
-  end
-
-  defp expand_by_pattern(colors, pattern) do
-    Enum.map(pattern, &Enum.at(colors, &1))
-  end
-
-  @doc """
-  Aplica un color ANSI a un texto dado.
-
-  ## Examples
-
-      iex> color = Aurora.Color.get_color_info(:primary)
-      iex> Aurora.Color.apply_color("Texto", color)
-  """
-  @spec apply_color(String.t(), ColorInfo.t()) :: String.t()
-  def apply_color(text, %ColorInfo{hex: hex, inverted: inverted}) when is_binary(hex) do
-    {r, g, b} = hex_to_rgb(hex)
-    colored = "\e[38;2;#{r};#{g};#{b}m#{text}\e[0m"
-
-    if inverted do
-      "\e[7m#{colored}\e[27m"
-    else
-      colored
-    end
-  end
-
-  def apply_color(text, _), do: text
-
-  @doc """
-  Aplica colores a una lista de ChunkText o a un ChunkText individual.
-  """
-  @spec apply_to_chunk([ChunkText.t()] | ChunkText.t()) :: [ChunkText.t()] | ChunkText.t()
-  def apply_to_chunk(chunks) when is_list(chunks) do
-    Enum.map(chunks, &apply_to_chunk/1)
-  end
-
-  def apply_to_chunk(%ChunkText{text: text, color: color} = chunk) do
-    ci = resolve_color(color)
-    %ChunkText{chunk | text: apply_color(text, ci)}
-  end
-
-  @doc """
-  Resuelve cualquier formato de color a un ColorInfo.
-
-  Acepta nil, ColorInfo, tuplas, átomos, strings hexadecimales.
-  """
-  @spec resolve_color(nil | ColorInfo.t() | {any(), any()} | atom() | String.t() | any()) ::
-          ColorInfo.t()
-  def resolve_color(nil), do: get_color_info(:no_color)
-  def resolve_color(%ColorInfo{} = ci), do: ci
-  def resolve_color({_, hex}), do: get_color_info(hex)
-  def resolve_color(atom) when is_atom(atom), do: get_color_info(atom)
-  def resolve_color(bin) when is_binary(bin), do: get_color_info(bin)
-  def resolve_color(_), do: get_color_info(:no_color)
-
-  @doc """
-  Normaliza un hexadecimal para que tenga formato `#XXXXXX` en mayúsculas.
-
-  ## Examples
-
-      iex> Aurora.Color.normalize_hex("ff0000")
-      "#FF0000"
-  """
-  @spec normalize_hex(String.t()) :: String.t()
-  def normalize_hex(hex) when is_binary(hex) do
-    hex
-    |> String.trim()
-    |> String.replace_prefix("#", "")
-    |> String.upcase()
-    |> then(&"##{&1}")
-  end
-
-  @doc """
-  Valida si un string es un color hexadecimal válido.
-
-  ## Examples
-
-      iex> Aurora.Color.valid_hex?("#FF0000")
-      true
-
-      iex> Aurora.Color.valid_hex?("invalid")
-      false
-  """
-  @spec valid_hex?(String.t() | any()) :: boolean()
-  def valid_hex?(hex) when is_binary(hex) do
-    String.match?(hex, ~r/^#([A-F0-9]{6})$/i)
-  end
-
-  def valid_hex?(_), do: false
-
-  @doc """
-  Convierte RGB a código ANSI 256 colores.
-  """
-  @spec rgb_to_ansi256({0..255, 0..255, 0..255}) :: 0..255
-  def rgb_to_ansi256({r, g, b}) when r in 0..255 and g in 0..255 and b in 0..255 do
-    # Mapeamos 0..255 a 0..5
-    r6 = div(r * 6, 256) |> clamp6()
-    g6 = div(g * 6, 256) |> clamp6()
-    b6 = div(b * 6, 256) |> clamp6()
-    16 + r6 * 36 + g6 * 6 + b6
-  end
-
-  defp clamp6(n) when n > 5, do: 5
-  defp clamp6(n), do: max(n, 0)
-
-  @doc """
-  Convierte hex #RRGGBB a {r,g,b} tuple con valores 0..255.
-
-  ## Examples
-
-      iex> Aurora.Color.hex_to_rgb("#FF0000")
-      {255, 0, 0}
-  """
-  @spec hex_to_rgb(String.t()) :: {0..255, 0..255, 0..255}
+  @spec hex_to_rgb(String.t()) :: ColorInfo.rgb_tuple()
   def hex_to_rgb("#" <> hex) when byte_size(hex) == 6 do
-    <<r::binary-size(2), g::binary-size(2), b::binary-size(2)>> = hex
+    <<r::binary-2, g::binary-2, b::binary-2>> = hex
     {String.to_integer(r, 16), String.to_integer(g, 16), String.to_integer(b, 16)}
   end
 
   def hex_to_rgb(_), do: {0, 0, 0}
 
   @doc """
-  Genera un gradiente de 6 colores a partir de un color central en la posición `pos`.
-  Los colores hacia la izquierda son más oscuros y hacia la derecha más claros.
-
-  ## Examples
-
-      iex> gradient = Aurora.Color.generate_gradient_from_color("#FF0000", 2)
-      iex> length(gradient)
-      6
-      iex> Enum.at(gradient, 2)
-      "#FF0000"
+  Convierte RGB a hexadecimal.
   """
-  @spec generate_gradient_from_color(String.t(), 0..5) :: [String.t()]
-  def generate_gradient_from_color(hex, pos) do
-    if valid_hex?(hex) and pos in 0..5 do
-      {r, g, b} = hex_to_rgb(hex)
+  @spec rgb_to_hex(ColorInfo.rgb_tuple()) :: String.t()
+  def rgb_to_hex({r, g, b}) do
+    "#" <>
+      Enum.map_join(
+        [r, g, b],
+        "",
+        &(Integer.to_string(&1, 16) |> String.pad_leading(2, "0") |> String.upcase())
+      )
+  end
 
-      left =
-        for i <- (pos - 1)..0//-1, reduce: [] do
-          acc ->
-            factor = (pos - i) / pos * 0.5
-            dark_rgb = {round(r * (1 - factor)), round(g * (1 - factor)), round(b * (1 - factor))}
-            [rgb_to_hex(dark_rgb) | acc]
-        end
+  @doc """
+  Convierte RGB a HSV.
+  """
+  @spec rgb_to_hsv(ColorInfo.rgb_tuple()) :: ColorInfo.hsv_tuple()
+  def rgb_to_hsv({r, g, b}) do
+    {r, g, b} = {r / 255, g / 255, b / 255}
+    max = Enum.max([r, g, b])
+    min = Enum.min([r, g, b])
+    delta = max - min
 
-      right =
-        for i <- (pos + 1)..5 do
-          factor = (i - pos) / (5 - pos) * 0.5
+    {h, s, v} =
+      if delta == 0 do
+        {0, 0, max}
+      else
+        h =
+          case max do
+            ^r -> (60 * ((g - b) / delta)) |> rem_float(360.0)
+            ^g -> 60 * ((b - r) / delta + 2)
+            ^b -> 60 * ((r - g) / delta + 4)
+          end
 
-          light_rgb =
-            {round(r + (255 - r) * factor), round(g + (255 - g) * factor),
-             round(b + (255 - b) * factor)}
+        {if(h < 0, do: h + 360, else: h), delta / max, max}
+      end
 
-          rgb_to_hex(light_rgb)
-        end
+    {h, s, v}
+  end
 
-      Enum.concat(left, [hex | right])
-      |> Enum.map(&normalize_hex/1)
+  @doc """
+  Convierte HSV a RGB.
+  """
+  @spec hsv_to_rgb(ColorInfo.hsv_tuple()) :: ColorInfo.rgb_tuple()
+  def hsv_to_rgb({h, s, v}) do
+    c = v * s
+    x = c * (1 - abs(rem_float(h / 60, 2) - 1))
+    m = v - c
+
+    {r1, g1, b1} = get_hue_sector(h, c, x)
+
+    {
+      round((r1 + m) * 255),
+      round((g1 + m) * 255),
+      round((b1 + m) * 255)
+    }
+  end
+
+  defp get_hue_sector(h, c, x) when h >= 0 and h < 60, do: {c, x, 0}
+  defp get_hue_sector(h, c, x) when h >= 60 and h < 120, do: {x, c, 0}
+  defp get_hue_sector(h, c, x) when h >= 120 and h < 180, do: {0, c, x}
+  defp get_hue_sector(h, c, x) when h >= 180 and h < 240, do: {0, x, c}
+  defp get_hue_sector(h, c, x) when h >= 240 and h < 300, do: {x, 0, c}
+  defp get_hue_sector(h, c, x) when h >= 300 and h < 360, do: {c, 0, x}
+
+  @doc """
+  Convierte RGB a HSL.
+  """
+  @spec rgb_to_hsl(ColorInfo.rgb_tuple()) :: ColorInfo.hsl_tuple()
+  def rgb_to_hsl({r, g, b}) do
+    {r, g, b} = {r / 255, g / 255, b / 255}
+    max = Enum.max([r, g, b])
+    min = Enum.min([r, g, b])
+    delta = max - min
+
+    l = (max + min) / 2
+
+    {h, s} =
+      if delta == 0 do
+        {0, 0}
+      else
+        s = delta / (1 - abs(2 * l - 1))
+
+        h =
+          case max do
+            ^r -> (60 * ((g - b) / delta)) |> rem_float(360.0)
+            ^g -> 60 * ((b - r) / delta + 2)
+            ^b -> 60 * ((r - g) / delta + 4)
+          end
+
+        {if(h < 0, do: h + 360, else: h), s}
+      end
+
+    {h, s, l}
+  end
+
+  @doc """
+  Convierte HSL a RGB.
+  """
+  @spec hsl_to_rgb(ColorInfo.hsl_tuple()) :: ColorInfo.rgb_tuple()
+  def hsl_to_rgb({h, s, l}) do
+    c = (1 - abs(2 * l - 1)) * s
+    x = c * (1 - abs(rem_float(h / 60, 2) - 1))
+    m = l - c / 2
+
+    {r1, g1, b1} = get_hue_sector(h, c, x)
+
+    {
+      round((r1 + m) * 255),
+      round((g1 + m) * 255),
+      round((b1 + m) * 255)
+    }
+  end
+
+  @doc """
+  Convierte RGB a CMYK.
+  """
+  @spec rgb_to_cmyk(ColorInfo.rgb_tuple()) :: ColorInfo.cmyk_tuple()
+  def rgb_to_cmyk({r, g, b}) do
+    {r, g, b} = {r / 255, g / 255, b / 255}
+    k = 1 - Enum.max([r, g, b])
+
+    if k == 1 do
+      {0, 0, 0, 1}
     else
-      [hex, hex, hex, hex, hex]
+      c = (1 - r - k) / (1 - k)
+      m = (1 - g - k) / (1 - k)
+      y = (1 - b - k) / (1 - k)
+      {c, m, y, k}
     end
   end
 
   @doc """
-  Genera un gradiente de 6 colores entre `first_hex` y `last_hex`.
-  Calcula los colores intermedios de forma lineal.
-
-  ## Examples
-
-      iex> Aurora.Color.generate_gradient_between("#FF0000", "#0000FF")
-      ["#FF0000", "#CC0033", "#990066", "#660099", "#3300CC", "#0000FF"]
+  Convierte CMYK a RGB.
   """
-  @spec generate_gradient_between(String.t(), String.t()) :: [String.t()]
-  def generate_gradient_between(first_hex, last_hex) do
-    with true <- valid_hex?(first_hex),
-         true <- valid_hex?(last_hex),
-         {r1, g1, b1} <- hex_to_rgb(first_hex),
-         {r2, g2, b2} <- hex_to_rgb(last_hex) do
-      generate_gradient_steps({r1, g1, b1}, {r2, g2, b2}, 6)
-    else
-      _ -> List.duplicate(get_default_color().hex, 6)
+  @spec cmyk_to_rgb(ColorInfo.cmyk_tuple()) :: ColorInfo.rgb_tuple()
+  def cmyk_to_rgb({c, m, y, k}) do
+    r = 255 * (1 - c) * (1 - k)
+    g = 255 * (1 - m) * (1 - k)
+    b = 255 * (1 - y) * (1 - k)
+    {round(r), round(g), round(b)}
+  end
+
+  @doc """
+  Convierte RGB a ARGB.
+  """
+  @spec rgb_to_argb(ColorInfo.rgb_tuple()) :: ColorInfo.argb_tuple()
+  def rgb_to_argb({r, g, b}), do: {255, r, g, b}
+
+  @doc """
+  Convierte ARGB a RGB.
+  """
+  @spec argb_to_rgb(ColorInfo.argb_tuple()) :: ColorInfo.rgb_tuple()
+  def argb_to_rgb({_a, r, g, b}), do: {r, g, b}
+
+  # Función auxiliar para módulo flotante
+  defp rem_float(a, b) do
+    a - b * Float.floor(a / b)
+  end
+
+  # ========== DETECCIÓN Y CREACIÓN DE COLORINFO ==========
+
+  @doc """
+  Convierte cualquier formato de color a ColorInfo detectando automáticamente el tipo.
+
+  ## Formatos soportados:
+    - Átomo: `:primary`, `:error`, etc.
+    - Hexadecimal: `"#FF0000"`, `"#A1E7FA"`
+    - RGB: `{255, 0, 0}`
+    - ARGB: `{255, 255, 0, 0}`
+    - HSV: `{0.0, 1.0, 1.0}`
+    - HSL: `{0.0, 1.0, 0.5}`
+    - CMYK: `{0.0, 1.0, 1.0, 0.0}`
+    - ColorInfo: `%ColorInfo{}`
+
+  ## Ejemplos:
+      iex> result = Aurora.Color.to_color_info(:primary)
+      iex> result.name
+      :primary
+
+      iex> result = Aurora.Color.to_color_info("#FF0000")
+      iex> result.hex
+      "#FF0000"
+
+      iex> result = Aurora.Color.to_color_info({255, 0, 0})
+      iex> result.hex
+      "#FF0000"
+  """
+  @spec to_color_info(any()) :: ColorInfo.t()
+  def to_color_info(%ColorInfo{} = color_info), do: color_info
+
+  def to_color_info(atom) when is_atom(atom) do
+    case Map.get(get_all_colors(), atom) do
+      nil -> get_default_color()
+      %ColorInfo{} = color_info -> color_info
+      color_map when is_map(color_map) -> struct(ColorInfo, color_map)
     end
   end
 
-  defp generate_gradient_steps({r1, g1, b1}, {r2, g2, b2}, steps) do
-    0..(steps - 1)
-    |> Enum.map(fn i ->
-      factor = i / (steps - 1)
-      r = round(r1 + (r2 - r1) * factor)
-      g = round(g1 + (g2 - g1) * factor)
-      b = round(b1 + (b2 - b1) * factor)
-      rgb_to_hex({r, g, b})
-    end)
-    |> Enum.map(&normalize_hex/1)
+  def to_color_info(hex) when is_binary(hex) do
+    if String.starts_with?(hex, "#") do
+      rgb = hex_to_rgb(hex)
+      create_color_info_from_rgb(rgb, hex: hex)
+    else
+      get_default_color()
+    end
+  end
+
+  def to_color_info({r, g, b}) when is_integer(r) and is_integer(g) and is_integer(b) do
+    create_color_info_from_rgb({r, g, b})
+  end
+
+  def to_color_info({a, r, g, b})
+      when is_integer(a) and is_integer(r) and is_integer(g) and is_integer(b) do
+    rgb = {r, g, b}
+    hex = rgb_to_hex(rgb)
+    create_color_info_from_rgb(rgb, hex: hex, argb: {a, r, g, b})
+  end
+
+  def to_color_info({h, s, v}) when is_number(h) and is_number(s) and is_number(v) do
+    rgb = hsv_to_rgb({h, s, v})
+    create_color_info_from_rgb(rgb, hsv: {h, s, v})
+  end
+
+  def to_color_info({h, s, l}) when is_number(h) and is_number(s) and is_number(l) do
+    rgb = hsl_to_rgb({h, s, l})
+    create_color_info_from_rgb(rgb, hsl: {h, s, l})
+  end
+
+  def to_color_info({c, m, y, k})
+      when is_number(c) and is_number(m) and is_number(y) and is_number(k) do
+    rgb = cmyk_to_rgb({c, m, y, k})
+    create_color_info_from_rgb(rgb, cmyk: {c, m, y, k})
+  end
+
+  def to_color_info(_), do: get_default_color()
+
+  defp create_color_info_from_rgb(rgb, opts \\ []) do
+    hex = Keyword.get(opts, :hex, rgb_to_hex(rgb))
+    argb = Keyword.get(opts, :argb, rgb_to_argb(rgb))
+    hsv = Keyword.get(opts, :hsv, rgb_to_hsv(rgb))
+    hsl = Keyword.get(opts, :hsl, rgb_to_hsl(rgb))
+    cmyk = Keyword.get(opts, :cmyk, rgb_to_cmyk(rgb))
+
+    %ColorInfo{
+      hex: hex,
+      rgb: rgb,
+      argb: argb,
+      hsv: hsv,
+      hsl: hsl,
+      cmyk: cmyk,
+      name: nil,
+      inverted: false
+    }
+  end
+
+  # ========== APLICACIÓN A ANSI ==========
+
+  @doc """
+  Convierte ColorInfo a código ANSI para terminal.
+  """
+  @spec color_info_to_ansi(ColorInfo.t()) :: String.t()
+  def color_info_to_ansi(%ColorInfo{hex: hex, inverted: inverted}) do
+    {r, g, b} = hex_to_rgb(hex)
+    color_code = "\e[38;2;#{r};#{g};#{b}m"
+
+    if inverted do
+      "\e[7m#{color_code}"
+    else
+      color_code
+    end
   end
 
   @doc """
-  Oscurece un color RGB restando una cantidad a cada componente.
-
-  ## Examples
-
-      iex> Aurora.Color.darken_rgb({255, 128, 64}, 50)
-      {205, 78, 14}
+  Aplica color ANSI a texto.
   """
-  @spec darken_rgb({0..255, 0..255, 0..255}, non_neg_integer()) :: {0..255, 0..255, 0..255}
-  def darken_rgb({r, g, b}, amount) do
-    {max(r - amount, 0), max(g - amount, 0), max(b - amount, 0)}
+  @spec apply_color(String.t(), any()) :: String.t()
+  def apply_color(text, color) do
+    color_info = to_color_info(color)
+    ansi_code = color_info_to_ansi(color_info)
+    "#{ansi_code}#{text}\e[0m"
   end
 
+  # ========== GESTIÓN DE CONFIGURACIÓN ==========
+
   @doc """
-  Aclara un color RGB sumando una cantidad a cada componente.
-
-  ## Examples
-
-      iex> Aurora.Color.lighten_rgb({100, 50, 25}, 50)
-      {150, 100, 75}
+  Devuelve el color por defecto.
   """
-  @spec lighten_rgb({0..255, 0..255, 0..255}, non_neg_integer()) :: {0..255, 0..255, 0..255}
-  def lighten_rgb({r, g, b}, amount) do
-    {min(r + amount, 255), min(g + amount, 255), min(b + amount, 255)}
+  @spec get_default_color() :: ColorInfo.t()
+  def get_default_color, do: %ColorInfo{}
+
+  @doc """
+  Devuelve todos los colores del config.
+  """
+  @spec get_all_colors() :: %{atom() => ColorInfo.t() | map()}
+  def get_all_colors, do: Map.merge(@colors_config, @gradients_config)
+
+  @doc """
+  Obtiene información de color (alias de to_color_info/1 para compatibilidad).
+  """
+  @spec get_color_info(any()) :: ColorInfo.t()
+  def get_color_info(color), do: to_color_info(color)
+
+  @doc """
+  Devuelve los gradientes configurados.
+  """
+  @spec gradients() :: %{atom() => ColorInfo.t() | map()}
+  def gradients, do: @gradients_config
+
+  @doc """
+  Busca color por nombre.
+  """
+  @spec find_by_name(atom()) :: ColorInfo.t() | nil
+  def find_by_name(name) do
+    case Map.get(get_all_colors(), name) do
+      nil -> nil
+      %ColorInfo{} = color_info -> color_info
+      color_map when is_map(color_map) -> struct(ColorInfo, color_map)
+    end
   end
 
+  # ========== GRADIENTES ==========
+
   @doc """
-  Convierte una tupla RGB a string hexadecimal.
-
-  ## Examples
-
-      iex> Aurora.Color.rgb_to_hex({255, 0, 0})
-      "#FF0000"
+  Expande lista de colores a exactamente 6 posiciones.
   """
-  @spec rgb_to_hex({0..255, 0..255, 0..255}) :: String.t()
-  def rgb_to_hex({r, g, b}),
-    do:
-      "#" <>
-        Enum.map_join([r, g, b], "", fn x ->
-          Integer.to_string(x, 16) |> String.pad_leading(2, "0")
-        end)
+  @spec expand_gradient([any()]) :: [ColorInfo.t()]
+  def expand_gradient(colors) when is_list(colors) do
+    colors = Enum.map(colors, &to_color_info/1)
+
+    case length(colors) do
+      1 ->
+        List.duplicate(hd(colors), 6)
+
+      2 ->
+        [c1, c2] = colors
+        [c1, c1, c1, c2, c2, c2]
+
+      3 ->
+        [c1, c2, c3] = colors
+        [c1, c1, c2, c2, c3, c3]
+
+      4 ->
+        [c1, c2, c3, c4] = colors
+        [c1, c1, c2, c3, c4, c4]
+
+      5 ->
+        [c1, c2, c3, c4, c5] = colors
+        [c1, c2, c3, c3, c4, c5]
+
+      6 ->
+        colors
+
+      _ ->
+        List.duplicate(get_default_color(), 6)
+    end
+  end
+
+  def expand_gradient(_), do: List.duplicate(get_default_color(), 6)
+
+  # ========== COMPATIBILIDAD CON CHUNKTEXT ==========
+
+  @doc """
+  Aplica color a ChunkText.
+  """
+  @spec apply_to_chunk(ChunkText.t() | [ChunkText.t()]) :: ChunkText.t() | [ChunkText.t()]
+  def apply_to_chunk(chunks) when is_list(chunks), do: Enum.map(chunks, &apply_to_chunk/1)
+
+  def apply_to_chunk(%ChunkText{text: text, color: color} = chunk) do
+    colored_text = apply_color(text, color)
+    %ChunkText{chunk | text: colored_text}
+  end
+
+  # ========== MANIPULACIÓN DE COLORES ==========
+
+  @doc """
+  Aclara un color aumentando su luminosidad en HSL.
+
+  ## Parámetros:
+    - `color_info`: ColorInfo a aclarar
+    - `tonos`: Número entero positivo de tonos a aclarar (cada tono = +8.33% de luminosidad)
+
+  ## Ejemplos:
+      iex> color = Aurora.Color.to_color_info("#336699")
+      iex> aclarado = Aurora.Color.aclarar(color, 2)
+      iex> aclarado.hex  # 2 tonos más claro
+      "#5990C8"
+  """
+  @spec aclarar(ColorInfo.t(), non_neg_integer()) :: ColorInfo.t()
+  def aclarar(color_info, 0), do: color_info
+
+  def aclarar(%ColorInfo{hsl: {h, s, l}} = color_info, tonos) when tonos > 0 do
+    # Cada tono = ~8.33% de luminosidad
+    incremento = tonos * 0.0833
+    new_l = min(l + incremento, 1.0)
+    new_rgb = hsl_to_rgb({h, s, new_l})
+    update_color_info(color_info, new_rgb)
+  end
+
+  def aclarar(color_info, _tonos), do: color_info
+
+  @doc """
+  Oscurece un color disminuyendo su luminosidad en HSL.
+
+  ## Parámetros:
+    - `color_info`: ColorInfo a oscurecer
+    - `tonos`: Número entero positivo de tonos a oscurecer (cada tono = -8.33% de luminosidad)
+
+  ## Ejemplos:
+      iex> color = Aurora.Color.to_color_info("#336699")
+      iex> oscurecido = Aurora.Color.oscurecer(color, 2)
+      iex> oscurecido.hex  # 2 tonos más oscuro
+      "#1E3C59"
+  """
+  @spec oscurecer(ColorInfo.t(), non_neg_integer()) :: ColorInfo.t()
+  def oscurecer(color_info, 0), do: color_info
+
+  def oscurecer(%ColorInfo{hsl: {h, s, l}} = color_info, tonos) when tonos > 0 do
+    # Cada tono = ~8.33% de luminosidad
+    decremento = tonos * 0.0833
+    new_l = max(l - decremento, 0.0)
+    new_rgb = hsl_to_rgb({h, s, new_l})
+    update_color_info(color_info, new_rgb)
+  end
+
+  def oscurecer(color_info, _tonos), do: color_info
+
+  defp update_color_info(%ColorInfo{} = original, new_rgb) do
+    %ColorInfo{
+      original
+      | hex: rgb_to_hex(new_rgb),
+        rgb: new_rgb,
+        argb: rgb_to_argb(new_rgb),
+        hsv: rgb_to_hsv(new_rgb),
+        hsl: rgb_to_hsl(new_rgb),
+        cmyk: rgb_to_cmyk(new_rgb)
+    }
+  end
 end

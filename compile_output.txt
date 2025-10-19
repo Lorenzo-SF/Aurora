@@ -1,0 +1,33 @@
+Compiling 11 files (.ex)
+     warning: Aurora.Format.format_line/2 is undefined or private. Did you mean:
+
+           * format/1
+           * format_logo/1
+           * format_logo/2
+
+     │
+ 257 │     IO.puts(Format.format_line(title_chunks, align: :center))
+     │                    ~
+     │
+     └─ lib/cli.ex:257:20: Aurora.CLI.show_help/0
+
+     warning: Aurora.Format.format_chunks/1 is undefined or private. Did you mean:
+
+           * format/1
+
+     │
+ 351 │       Format.format_chunks([
+     │              ~
+     │
+     └─ lib/cli.ex:351:14: Aurora.CLI.show_help/0
+     └─ lib/cli.ex:364:14: Aurora.CLI.show_help/0
+     └─ lib/cli.ex:373:14: Aurora.CLI.show_help/0
+     └─ lib/cli.ex:382:14: Aurora.CLI.show_help/0
+     └─ lib/cli.ex:391:14: Aurora.CLI.show_help/0
+     └─ lib/cli.ex:404:14: Aurora.CLI.print_section_header/1
+     └─ lib/cli.ex:416:14: Aurora.CLI.print_section_header_colored/2
+     └─ lib/cli.ex:428:14: Aurora.CLI.print_section_header_with_note/2
+     └─ lib/cli.ex:459:20: Aurora.CLI.print_flag/2
+     └─ lib/cli.ex:483:20: Aurora.CLI.print_example/2
+
+Compilation failed due to warnings while using the --warnings-as-errors option

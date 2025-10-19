@@ -22,7 +22,7 @@ defmodule Aurora.Structs.ChunkText do
 
       iex> color = %Aurora.Structs.ColorInfo{name: :primary}
       iex> effects = %Aurora.Structs.EffectInfo{bold: true, underline: true}
-      iex> chunk_formatted = %Aurora.Structs.ChunkText{
+      iex> _chunk_formatted = %Aurora.Structs.ChunkText{
       ...>   text: "Texto formateado",
       ...>   color: color,
       ...>   effects: effects,

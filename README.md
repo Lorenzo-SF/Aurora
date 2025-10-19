@@ -606,26 +606,99 @@ mix test --exclude deprecated
 
 ## 🖥️ Uso como CLI
 
-Aurora también puede usarse como una herramienta de línea de comandos independiente:
+Aurora puede usarse como herramienta de línea de comandos independiente.
+
+### Instalación del CLI
+
+Compila el ejecutable:
 
 ```bash
-# Formatear texto con color
-aurora format "Hola mundo" --color primary
+mix escript.build
+```
 
-# Aplicar color a texto
-aurora colorize "Texto rojo" --color error
+Esto crea el archivo `aurora` que puedes ejecutar directamente o mover a tu PATH.
 
-# Aplicar efectos
-aurora stylize "Texto en negrita" --effects bold
+### Modo Texto
 
-# Formatear JSON
-aurora json '{"name": "Juan"}' --color info
+Formatea texto con colores y efectos:
 
-# Listar colores disponibles
-aurora colors
+```bash
+# Texto simple con color
+./aurora --text="¡Hola mundo!" --color=primary --bold
 
-# Listar efectos disponibles
-aurora effects
+# Múltiples fragmentos con diferentes colores
+./aurora --text="Error: " --color=error --text="Archivo no encontrado" --color=warning
+
+# Con efectos y manipulación de color
+./aurora --text="Advertencia" --color=warning --lighten=2 --italic
+
+# Color hexadecimal personalizado
+./aurora --text="Custom" --color=#FF6B35 --bold
+```
+
+### Modo Tabla
+
+Crea tablas formateadas:
+
+```bash
+# Tabla básica
+./aurora --table \
+  --headers="Nombre,Edad,Rol" \
+  --row="Juan,25,Desarrollador" \
+  --row="Ana,30,Diseñadora"
+
+# Tabla con colores personalizados
+./aurora --table \
+  --headers="ID,Estado" \
+  --row="1,Activo" \
+  --row="2,Inactivo" \
+  --header-color=primary \
+  --row-color=success
+```
+
+### Opciones Disponibles
+
+**Opciones de Texto:**
+- `--text=<texto>` - Texto a formatear (repetible)
+- `--color=<color>` - Color hex (#FF0000) o nombre (primary, error, etc.)
+- `--align=<tipo>` - Alineación: left, center, right, justify
+- `--add-line=<pos>` - Líneas extra: none, before, after, both
+
+**Efectos:**
+- `--bold`, `--dim`, `--italic`, `--underline`
+- `--blink`, `--reverse`, `--strikethrough`
+
+**Manipulación de Color:**
+- `--lighten=N` - Aclara el color N tonos (1-6)
+- `--darken=N` - Oscurece el color N tonos (1-6)
+- `--inverted` - Invierte el color (intercambia fondo/texto)
+
+**Tabla:**
+- `--table` - Activa modo tabla
+- `--headers=<csv>` - Cabeceras separadas por comas
+- `--row=<csv>` - Fila de datos (repetible)
+- `--header-color=<color>` - Color de cabeceras
+- `--row-color=<color>` - Color de filas
+
+**General:**
+- `--version`, `-v` - Muestra la versión
+- `--help`, `-h` - Muestra la ayuda
+
+### Salida del CLI
+
+El CLI devuelve el string con códigos ANSI sin interpretar:
+
+```bash
+# Guardar en variable bash
+result=$(./aurora --text="Éxito" --color=success --bold)
+echo "$result"
+
+# Usar en pipes
+./aurora --text="Error" --color=error | tee log.txt
+
+# Ver el string literal con códigos
+./aurora --text="Test" --color=primary
+# Salida: "\e[38;2;161;231;250m\e[1mTest\e[0m"
 ```
 
 ## 📄 Licencia

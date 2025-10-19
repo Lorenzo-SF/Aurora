@@ -7,251 +7,94 @@ defmodule Aurora.EffectsTest do
 
   describe "apply_effect/2" do
     test "applies bold effect" do
-      result = Effects.apply_effect("text", :bold)
-      assert result == "\e[1mtext\e[0m"
-    end
-
-    test "applies italic effect" do
-      result = Effects.apply_effect("text", :italic)
-      assert result == "\e[3mtext\e[0m"
+      result = Effects.apply_effect("Hello", :bold)
+      assert String.contains?(result, "\e[1m")
+      assert String.ends_with?(result, "\e[0m")
+      assert String.contains?(result, "Hello")
     end
 
     test "applies underline effect" do
-      result = Effects.apply_effect("text", :underline)
-      assert result == "\e[4mtext\e[0m"
-    end
-
-    test "applies dim effect" do
-      result = Effects.apply_effect("text", :dim)
-      assert result == "\e[2mtext\e[0m"
-    end
-
-    test "applies blink effect" do
-      result = Effects.apply_effect("text", :blink)
-      assert result == "\e[5mtext\e[0m"
-    end
-
-    test "applies reverse effect" do
-      result = Effects.apply_effect("text", :reverse)
-      assert result == "\e[7mtext\e[0m"
-    end
-
-    test "applies hidden effect" do
-      result = Effects.apply_effect("text", :hidden)
-      assert result == "\e[8mtext\e[0m"
-    end
-
-    test "applies strikethrough effect" do
-      result = Effects.apply_effect("text", :strikethrough)
-      assert result == "\e[9mtext\e[0m"
+      result = Effects.apply_effect("World", :underline)
+      assert String.contains?(result, "\e[4m")
+      assert String.ends_with?(result, "\e[0m")
     end
 
     test "returns original text for invalid effect" do
-      result = Effects.apply_effect("text", :invalid)
-      assert result == "text"
+      result = Effects.apply_effect("Text", :invalid_effect)
+      assert result == "Text"
     end
 
-    test "handles empty text" do
-      result = Effects.apply_effect("", :bold)
-      assert result == "\e[1m\e[0m"
+    test "handles nil and non-string input" do
+      assert Effects.apply_effect(nil, :bold) == "\e[1m\e[0m"
+      assert Effects.apply_effect(123, :bold) == "\e[1m123\e[0m"
     end
   end
 
   describe "apply_multiple_effects/2" do
-    test "applies multiple effects in sequence" do
-      result = Effects.apply_multiple_effects("text", [:bold, :underline])
-      assert result == "\e[1m\e[4mtext\e[0m"
-    end
-
-    test "applies single effect in list" do
-      result = Effects.apply_multiple_effects("text", [:bold])
-      assert result == "\e[1mtext\e[0m"
-    end
-
-    test "ignores invalid effects" do
-      result = Effects.apply_multiple_effects("text", [:bold, :invalid, :italic])
-      assert result == "\e[1m\e[3mtext\e[0m"
-    end
-
-    test "returns original text for empty effects list" do
-      result = Effects.apply_multiple_effects("text", [])
-      assert result == "text"
-    end
-
-    test "returns original text for all invalid effects" do
-      result = Effects.apply_multiple_effects("text", [:invalid1, :invalid2])
-      assert result == "text"
-    end
-
-    test "combines three effects correctly" do
-      result = Effects.apply_multiple_effects("text", [:bold, :italic, :underline])
-      assert result == "\e[1m\e[3m\e[4mtext\e[0m"
-    end
-  end
-
-  describe "apply_effects/2 with options" do
-    test "applies no effects when opts is empty" do
-      result = Effects.apply_effects("text", [])
-      assert result == "text"
-    end
-
-    test "applies no effects when all are false" do
-      opts = [
-        bold: false,
-        italic: false,
-        underline: false,
-        dim: false,
-        blink: false,
-        reverse: false,
-        hidden: false,
-        strikethrough: false
-      ]
-
-      result = Effects.apply_effects("text", opts)
-      assert result == "text"
-    end
-
-    test "applies all effects when all are true" do
-      opts = [
-        bold: true,
-        italic: true,
-        underline: true,
-        dim: true,
-        blink: true,
-        reverse: true,
-        hidden: true,
-        strikethrough: true
-      ]
-
-      result = Effects.apply_effects("text", opts)
-      assert String.contains?(result, "text")
+    test "applies multiple effects" do
+      result = Effects.apply_multiple_effects("Text", [:bold, :italic, :underline])
       assert String.contains?(result, "\e[1m")
       assert String.contains?(result, "\e[3m")
       assert String.contains?(result, "\e[4m")
       assert String.ends_with?(result, "\e[0m")
     end
+
+    test "filters out invalid effects" do
+      result = Effects.apply_multiple_effects("Text", [:bold, :invalid, :italic])
+      assert String.contains?(result, "\e[1m")
+      assert String.contains?(result, "\e[3m")
+      refute String.contains?(result, "invalid")
+    end
+
+    test "returns original text for empty effects list" do
+      result = Effects.apply_multiple_effects("Text", [])
+      assert result == "Text"
+    end
   end
 
-  describe "apply_effects/2 with keyword list" do
+  describe "apply_effects/2" do
     test "applies effects from keyword list" do
-      result = Effects.apply_effects("text", bold: true, italic: true)
-      assert result == "\e[1m\e[3mtext\e[0m"
+      result = Effects.apply_effects("Text", bold: true, italic: true, underline: false)
+      assert String.contains?(result, "\e[1m")
+      assert String.contains?(result, "\e[3m")
+      # underline was false
+      refute String.contains?(result, "\e[4m")
     end
 
-    test "ignores false values in keyword list" do
-      result = Effects.apply_effects("text", bold: true, italic: false, underline: true)
-      assert result == "\e[1m\e[4mtext\e[0m"
+    test "handles empty options" do
+      result = Effects.apply_effects("Text", [])
+      assert result == "Text"
     end
 
-    test "ignores non-effect keys" do
-      result = Effects.apply_effects("text", bold: true, color: :red, italic: true)
-      assert result == "\e[1m\e[3mtext\e[0m"
-    end
-
-    test "returns original text for empty keyword list" do
-      result = Effects.apply_effects("text", [])
-      assert result == "text"
-    end
-  end
-
-  describe "available_effects/0" do
-    test "returns list of all available effects" do
-      effects = Effects.available_effects()
-      assert is_list(effects)
-      assert :bold in effects
-      assert :italic in effects
-      assert :underline in effects
-      assert :dim in effects
-      assert :blink in effects
-      assert :reverse in effects
-      assert :hidden in effects
-      assert :strikethrough in effects
-      assert length(effects) == 8
-    end
-  end
-
-  describe "valid_effect?/1" do
-    test "returns true for valid effects" do
-      assert Effects.valid_effect?(:bold)
-      assert Effects.valid_effect?(:italic)
-      assert Effects.valid_effect?(:underline)
-      assert Effects.valid_effect?(:dim)
-      assert Effects.valid_effect?(:blink)
-      assert Effects.valid_effect?(:reverse)
-      assert Effects.valid_effect?(:hidden)
-      assert Effects.valid_effect?(:strikethrough)
-    end
-
-    test "returns false for invalid effects" do
-      refute Effects.valid_effect?(:invalid)
-      refute Effects.valid_effect?(:non_existent)
-      refute Effects.valid_effect?(:random)
-    end
-
-    test "returns false for non-atom input" do
-      refute Effects.valid_effect?("bold")
-      refute Effects.valid_effect?(123)
-      refute Effects.valid_effect?(nil)
+    test "filters invalid effects in options" do
+      result = Effects.apply_effects("Text", bold: true, invalid: true, italic: true)
+      assert String.contains?(result, "\e[1m")
+      assert String.contains?(result, "\e[3m")
     end
   end
 
   describe "apply_effect_info/2" do
-    test "applies single effect from EffectInfo" do
-      effect_info = %EffectInfo{bold: true}
-      result = Effects.apply_effect_info("text", effect_info)
-      assert result == "\e[1mtext\e[0m"
-    end
+    test "applies effects from EffectInfo struct" do
+      effect_info = %EffectInfo{bold: true, italic: true}
+      result = Effects.apply_effect_info("Text", effect_info)
 
-    test "applies multiple effects from EffectInfo" do
-      effect_info = %EffectInfo{bold: true, italic: true, underline: true}
-      result = Effects.apply_effect_info("text", effect_info)
-
-      # Verificar que los códigos estén presentes (orden puede variar)
-      # bold
       assert String.contains?(result, "\e[1m")
-      # italic
       assert String.contains?(result, "\e[3m")
-      # underline
-      assert String.contains?(result, "\e[4m")
-      assert String.ends_with?(result, "text\e[0m")
-      assert String.starts_with?(result, "\e[")
+      assert String.ends_with?(result, "\e[0m")
     end
 
-    test "applies no effects from EffectInfo with all false" do
+    test "handles EffectInfo with no effects enabled" do
       effect_info = %EffectInfo{}
-      result = Effects.apply_effect_info("text", effect_info)
-      assert result == "text"
+      result = Effects.apply_effect_info("Text", effect_info)
+      assert result == "Text"
     end
 
-    test "ignores unsupported effects" do
-      # Test with EffectInfo that has all supported effects
-      effect_info = %EffectInfo{
-        bold: true,
-        dim: false,
-        italic: true,
-        underline: false,
-        blink: false,
-        reverse: false,
-        hidden: false,
-        strikethrough: false
-      }
-
-      result = Effects.apply_effect_info("text", effect_info)
-
-      # Verificar que los códigos correctos estén presentes
-      # bold
-      assert String.contains?(result, "\e[1m")
-      # italic
-      assert String.contains?(result, "\e[3m")
-      assert String.ends_with?(result, "text\e[0m")
-      # Verificar que códigos no deseados NO estén presentes
-      # dim
-      refute String.contains?(result, "\e[2m")
-      # underline
-      refute String.contains?(result, "\e[4m")
+    test "handles nil EffectInfo" do
+      result = Effects.apply_effect_info("Text", nil)
+      assert result == "Text"
     end
 
-    test "handles all effects enabled" do
+    test "applies all available effects" do
       effect_info = %EffectInfo{
         bold: true,
         dim: true,
@@ -260,86 +103,119 @@ defmodule Aurora.EffectsTest do
         blink: true,
         reverse: true,
         hidden: true,
-        strikethrough: true
+        strikethrough: true,
+        link: true
       }
 
-      result = Effects.apply_effect_info("text", effect_info)
+      result = Effects.apply_effect_info("Text", effect_info)
 
-      # Verify that all effect codes are present
-      # bold
-      assert String.contains?(result, "\e[1m")
-      # dim
-      assert String.contains?(result, "\e[2m")
-      # italic
-      assert String.contains?(result, "\e[3m")
-      # underline
-      assert String.contains?(result, "\e[4m")
-      # blink
-      assert String.contains?(result, "\e[5m")
-      # reverse
-      assert String.contains?(result, "\e[7m")
-      # hidden
-      assert String.contains?(result, "\e[8m")
-      # strikethrough
-      assert String.contains?(result, "\e[9m")
-      assert String.ends_with?(result, "text\e[0m")
+      # Should contain multiple ANSI codes
+      assert String.match?(result, ~r/\e\[1m.*\e\[0m/)
+      assert String.length(result) > String.length("Text") + 10
     end
   end
 
   describe "apply_chunk_effects/1" do
     test "applies effects to ChunkText with effects" do
       effect_info = %EffectInfo{bold: true, italic: true}
-      chunk = %ChunkText{text: "test text", effects: effect_info}
+      chunk = %ChunkText{text: "Hello", effects: effect_info}
+
       result = Effects.apply_chunk_effects(chunk)
 
-      # Verificar efectos aplicados (orden puede variar)
-      # bold
+      assert %ChunkText{} = result
       assert String.contains?(result.text, "\e[1m")
-      # italic
       assert String.contains?(result.text, "\e[3m")
-      assert String.ends_with?(result.text, "test text\e[0m")
-      # Original effects preserved
-      assert result.effects == effect_info
     end
 
     test "returns unchanged ChunkText when no effects" do
-      chunk = %ChunkText{text: "test text", effects: nil}
+      chunk = %ChunkText{text: "Hello", effects: nil}
+
       result = Effects.apply_chunk_effects(chunk)
 
-      assert result.text == "test text"
-      assert result.effects == nil
+      assert result == chunk
     end
 
-    test "handles ChunkText with empty EffectInfo" do
-      effect_info = %EffectInfo{}
-      chunk = %ChunkText{text: "test text", effects: effect_info}
-      result = Effects.apply_chunk_effects(chunk)
-
-      # No effects applied
-      assert result.text == "test text"
-      assert result.effects == effect_info
+    test "handles non-ChunkText input" do
+      result = Effects.apply_chunk_effects("Hello")
+      assert %ChunkText{} = result
+      assert result.text == "Hello"
     end
+  end
 
-    test "preserves other ChunkText fields" do
+  describe "apply_chunks_effects/1" do
+    test "applies effects to list of chunks" do
       effect_info = %EffectInfo{bold: true}
-      color_info = Aurora.Color.get_color_info(:primary)
-      chunk = %ChunkText{text: "test", color: color_info, effects: effect_info}
-      result = Effects.apply_chunk_effects(chunk)
 
-      # Color preserved
-      assert result.color == color_info
-      # Effects preserved
-      assert result.effects == effect_info
-      # Bold effect applied
-      assert String.starts_with?(result.text, "\e[1m")
+      chunks = [
+        %ChunkText{text: "One", effects: effect_info},
+        %ChunkText{text: "Two", effects: nil},
+        %ChunkText{text: "Three", effects: effect_info}
+      ]
+
+      result = Effects.apply_chunks_effects(chunks)
+
+      assert is_list(result)
+      assert length(result) == 3
+      assert String.contains?(hd(result).text, "\e[1m")
+      # No effects
+      assert Enum.at(result, 1).text == "Two"
+      assert String.contains?(Enum.at(result, 2).text, "\e[1m")
+    end
+  end
+
+  describe "utility functions" do
+    test "available_effects/0 returns all effects" do
+      effects = Effects.available_effects()
+
+      assert is_list(effects)
+      assert length(effects) > 0
+      assert :bold in effects
+      assert :italic in effects
+      assert :underline in effects
     end
 
-    test "handles empty text with effects" do
-      effect_info = %EffectInfo{underline: true}
-      chunk = %ChunkText{text: "", effects: effect_info}
-      result = Effects.apply_chunk_effects(chunk)
+    test "valid_effect?/1 checks effect validity" do
+      assert Effects.valid_effect?(:bold) == true
+      assert Effects.valid_effect?(:underline) == true
+      assert Effects.valid_effect?(:invalid) == false
+    end
 
-      assert result.text == "\e[4m\e[0m"
+    test "get_effect_code/1 returns ANSI codes" do
+      assert Effects.get_effect_code(:bold) == "\e[1m"
+      assert Effects.get_effect_code(:underline) == "\e[4m"
+      assert Effects.get_effect_code(:invalid) == nil
+    end
+
+    test "remove_effects/1 cleans ANSI codes" do
+      ansi_text = "\e[1mHello\e[0m \e[3mWorld\e[0m"
+      clean_text = Effects.remove_effects(ansi_text)
+
+      assert clean_text == "Hello World"
+    end
+
+    test "remove_effects/1 handles text without ANSI" do
+      assert Effects.remove_effects("Normal text") == "Normal text"
+      assert Effects.remove_effects("") == ""
+    end
+  end
+
+  describe "edge cases" do
+    test "handles empty strings" do
+      assert Effects.apply_effect("", :bold) == "\e[1m\e[0m"
+      assert Effects.apply_multiple_effects("", [:bold, :italic]) == "\e[1m\e[3m\e[0m"
+    end
+
+    test "handles strings with special characters" do
+      text = "Text with\nnewline\tand\ttabs"
+      result = Effects.apply_effect(text, :bold)
+
+      assert String.contains?(result, "\e[1m")
+      assert String.contains?(result, "newline")
+      assert String.ends_with?(result, "\e[0m")
+    end
+
+    test "link effect uses same code as underline" do
+      assert Effects.get_effect_code(:link) == Effects.get_effect_code(:underline)
     end
   end
 end

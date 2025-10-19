@@ -1,55 +1,33 @@
 defmodule Aurora.Structs.ColorInfo do
   @moduledoc """
-  Estructura que representa información de color para texto en terminal.
-
-  `ColorInfo` encapsula toda la información necesaria para aplicar color a texto,
-  incluyendo colores predefinidos, colores personalizados en formato hexadecimal
-  y configuraciones especiales como inversión.
-
-  ## Campos
-
-  - `hex` - Código de color hexadecimal (ej: "#FF0000")
-  - `name` - Nombre del color predefinido (átomo como :primary, :error, etc.)
-  - `inverted` - Indica si se debe invertir el color (boolean)
-
-  ## Colores predefinidos
-
-  El sistema incluye varios colores predefinidos:
-
-  - `:primary` - Color principal del sistema
-  - `:secondary` - Color secundario
-  - `:success` - Verde para éxito
-  - `:warning` - Amarillo para advertencias
-  - `:error` - Rojo para errores
-  - `:info` - Azul para información
-  - `:no_color` - Sin color
-
-  ## Uso básico
-
-      iex> # Color predefinido
-      iex> primary = %Aurora.Structs.ColorInfo{name: :primary}
-
-      iex> # Color personalizado
-      iex> custom = %Aurora.Structs.ColorInfo{hex: "#FF5733"}
-
-      iex> # Color invertido
-      iex> inverted = %Aurora.Structs.ColorInfo{name: :error, inverted: true}
-
-  ## Características
-
-  - Soporta tanto colores predefinidos como personalizados
-  - Los colores hexadecimales se convierten automáticamente a códigos ANSI
-  - La inversión aplica el efecto reverse de ANSI
-  - Los valores por defecto se obtienen de la configuración de la aplicación
+  Representa información de color en múltiples formatos.
   """
 
-  defstruct hex: Application.compile_env(:aurora, :colors)[:colors][:no_color][:hex],
-            name: Application.compile_env(:aurora, :colors)[:colors][:no_color][:name],
-            inverted: false
+  @default_color Application.compile_env(:aurora, :colors)[:colors][:no_color]
+
+  defstruct hex: @default_color.hex,
+            rgb: @default_color.rgb,
+            argb: @default_color.argb,
+            hsv: @default_color.hsv,
+            hsl: @default_color.hsl,
+            cmyk: @default_color.cmyk,
+            name: @default_color.name,
+            inverted: @default_color.inverted
+
+  @type rgb_tuple :: {integer(), integer(), integer()}
+  @type argb_tuple :: {integer(), integer(), integer(), integer()}
+  @type hsv_tuple :: {number(), number(), number()}
+  @type hsl_tuple :: {number(), number(), number()}
+  @type cmyk_tuple :: {number(), number(), number(), number()}
 
   @type t :: %__MODULE__{
           hex: String.t(),
-          name: atom() | nil,
+          rgb: rgb_tuple,
+          argb: argb_tuple,
+          hsv: hsv_tuple,
+          hsl: hsl_tuple,
+          cmyk: cmyk_tuple,
+          name: atom(),
           inverted: boolean()
         }
 end

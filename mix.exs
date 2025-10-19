@@ -40,7 +40,7 @@ defmodule Aurora.MixProject do
         dest_dir = Path.expand("~/.Ypsilon")
         File.mkdir_p!(dest_dir)
         File.cp!("aurora", Path.join(dest_dir, "aurora"))
-        IO.puts("✅ Escript instalado en dest_dir}/aurora")
+        IO.puts("✅ Escript instalado en #{dest_dir}/aurora")
       end,
       credo: ["format --check-formatted", "credo --strict --format=oneline"],
       quality: [
@@ -49,24 +49,14 @@ defmodule Aurora.MixProject do
         "compile --warnings-as-errors",
         "cmd 'echo \"✅ mix compile terminado\"'",
         "cmd MIX_ENV=test mix test",
-        "cmd 'echo \"✅ mix test terminado\"'",
+        "cmd 'echo \"✅ mix test terminado\"'",he
         "credo --strict",
         "cmd 'echo \"✅ mix credo terminado\"'",
         "dialyzer",
         "cmd 'echo \"✅ quality terminado\"'"
       ],
-      ci: [
-        "deps.get",
-        "cmd 'clean'",
-        "compile --warnings-as-errors",
-        "cmd MIX_ENV=test mix test",
-        "credo --strict",
-        "cmd 'echo \\\"terminado terminado\"'"
-      ],
       hex_prepare: [
-        "cmd 'clean'",
-        "compile --force --warnings-as-errors",
-        "cmd MIX_ENV=test mix test",
+        "quality",
         "docs",
         "cmd mix hex.build"
       ],
@@ -80,6 +70,7 @@ defmodule Aurora.MixProject do
   defp deps do
     [
       {:benchee, "~> 1.3", only: :dev},
+      {:changex, "~> 0.3.0"},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
       {:propcheck, "~> 1.4", only: :test},
       {:credo, "~> 1.7.11", only: [:dev, :test], runtime: false},

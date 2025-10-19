@@ -15,14 +15,15 @@ defmodule Aurora.Structs.EffectInfo do
   - `reverse` - Colores invertidos
   - `hidden` - Texto oculto
   - `strikethrough` - Texto tachado
+  - `link` - Texto como enlace (underline)
 
   ## Uso básico
 
       iex> # Efectos básicos
-      iex> effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+      iex> _effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
 
       iex> # Todos los efectos activados
-      iex> all_effects = %Aurora.Structs.EffectInfo{
+      iex> _all_effects = %Aurora.Structs.EffectInfo{
       ...>   bold: true,
       ...>   italic: true,
       ...>   underline: true,

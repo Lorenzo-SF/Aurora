@@ -38,7 +38,7 @@ defmodule Aurora.Structs.FormatInfo do
   ## Uso básico
 
       iex> chunk = %Aurora.Structs.ChunkText{text: "Hola"}
-      iex> format_info = %Aurora.Structs.FormatInfo{
+      iex> _format_info = %Aurora.Structs.FormatInfo{
       ...>   chunks: [chunk],
       ...>   align: :center,
       ...>   mode: :table,
