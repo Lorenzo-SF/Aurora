@@ -4,7 +4,7 @@ defmodule Aurora.MixProject do
   def project do
     [
       app: :aurora,
-      version: "1.0.5",
+      version: "1.0.6",
       elixir: "~> 1.18.4-otp-28",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
