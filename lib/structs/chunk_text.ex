@@ -1,42 +1,57 @@
 defmodule Aurora.Structs.ChunkText do
   @moduledoc """
-  Estructura que representa un fragmento de texto con formato y posicionamiento.
+  Structure representing a text chunk with formatting and positioning.
 
-  Un `ChunkText` es la unidad básica de texto formateado en Aurora. Cada chunk
-  contiene texto, información de color opcional, efectos ANSI y coordenadas
-  de posición para renderizado avanzado.
+  A `ChunkText` is the basic unit of formatted text in Aurora. Each chunk
+  contains text, optional color information, ANSI effects, and position
+  coordinates for advanced rendering.
 
-  ## Campos
+  ## Fields
 
-  - `text` - El contenido de texto (requerido)
-  - `color` - Información de color (opcional, %ColorInfo{})
-  - `effects` - Efectos ANSI como bold, italic, etc. (opcional, %EffectInfo{})
-  - `pos_x` - Posición horizontal para renderizado (integer, default: 0)
-  - `pos_y` - Posición vertical para renderizado (integer, default: 0)
+  - `text` - The text content (required)
+  - `color` - Color information (optional, %ColorInfo{})
+  - `effects` - ANSI effects like bold, italic, etc. (optional, %EffectInfo{})
+  - `pos_x` - Horizontal position for rendering (integer, default: 0)
+  - `pos_y` - Vertical position for rendering (integer, default: 0)
 
-  ## Uso básico
+  ## Examples
 
-      iex> chunk = %Aurora.Structs.ChunkText{text: "Hola mundo"}
-      iex> chunk.text
-      "Hola mundo"
+      # Basic usage
+      chunk = %Aurora.Structs.ChunkText{text: "Hello world"}
+      chunk.text  # "Hello world"
 
-      iex> color = %Aurora.Structs.ColorInfo{name: :primary}
-      iex> effects = %Aurora.Structs.EffectInfo{bold: true, underline: true}
-      iex> _chunk_formatted = %Aurora.Structs.ChunkText{
-      ...>   text: "Texto formateado",
-      ...>   color: color,
-      ...>   effects: effects,
-      ...>   pos_x: 10,
-      ...>   pos_y: 5
-      ...> }
+      # Chunk with color and effects
+      color = %Aurora.Structs.ColorInfo{name: :primary}
+      effects = %Aurora.Structs.EffectInfo{bold: true, underline: true}
+      chunk_formatted = %Aurora.Structs.ChunkText{
+        text: "Formatted text",
+        color: color,
+        effects: effects,
+        pos_x: 10,
+        pos_y: 5
+      }
 
-  ## Características
+      # Creating chunks with different approaches
+      chunk1 = %Aurora.Structs.ChunkText{text: "Simple text"}
+      chunk2 = %Aurora.Structs.ChunkText{text: "With color", color: :primary}
+      chunk3 = %Aurora.Structs.ChunkText{text: "With position", pos_x: 20, pos_y: 10}
+      chunk4 = %Aurora.Structs.ChunkText{
+        text: "Fully formatted",
+        color: :success,
+        effects: %Aurora.Structs.EffectInfo{bold: true, italic: true},
+        pos_x: 5,
+        pos_y: 5
+      }
 
-  - El campo `text` es obligatorio
-  - El color es opcional y utiliza la estructura ColorInfo
-  - Los efectos son opcionales y utilizan la estructura EffectInfo
-  - Las posiciones permiten renderizado preciso en terminal
-  - Soporta múltiples efectos ANSI simultáneos
+  ## Features
+
+  - The `text` field is required
+  - Color is optional and uses the ColorInfo structure
+  - Effects are optional and use the EffectInfo structure
+  - Positions allow for precise terminal rendering
+  - Supports multiple simultaneous ANSI effects
+  - Can be used in both table and raw rendering modes
+  - Works with automatic indentation based on color type
   """
 
   @enforce_keys [:text]

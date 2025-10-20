@@ -1,63 +1,91 @@
 defmodule Aurora.CLI do
   @moduledoc """
-  CLI para formatear texto con colores y efectos ANSI en la terminal.
+  Command-line interface for formatting text with colors and ANSI effects in the terminal.
 
-  Aurora puede usarse como herramienta de línea de comandos para generar texto
-  formateado con códigos ANSI. Devuelve el string literal con los códigos de escape
-  sin interpretar, perfecto para capturar en variables bash o procesar externamente.
+  Aurora can be used as a command-line tool to generate formatted text with ANSI codes.
+  It returns the literal string with escape codes without interpretation, perfect for
+  capturing in bash variables or external processing.
 
-  ## Instalación
+  ## Installation
 
-  Compila el ejecutable:
+  Build the executable:
 
       mix escript.build
 
-  Esto crea el archivo `aurora` que puedes ejecutar directamente.
+  This creates the `aurora` file that you can execute directly.
 
-  ## Uso Básico
+  ## Basic Usage
 
-  ### Modo Texto
+  ### Text Mode
 
-  Formatea uno o varios fragmentos de texto:
+  Format one or multiple text fragments:
 
-      ./aurora --text="¡Hola!" --color=primary --bold
-      ./aurora --text="Error: " --color=error --text="Archivo no encontrado" --color=warning
+      ./aurora --text="Hello!" --color=primary --bold
+      ./aurora --text="Error: " --color=error --text="File not found" --color=warning
 
-  ### Modo Tabla
+  ### Table Mode
 
-  Crea tablas formateadas:
+  Create formatted tables:
 
-      ./aurora --table --headers="Nombre,Edad" --row="Juan,25" --row="Ana,30"
+      ./aurora --table --headers="Name,Age" --row="John,25" --row="Ana,30"
 
-  ## Opciones Principales
+  ## Main Options
 
-  **Texto:**
-  - `--text=<texto>` - Texto a formatear (repetible para múltiples fragmentos)
-  - `--color=<color>` - Color hex (#FF0000) o nombre (primary, error, etc.)
-  - `--align=<tipo>` - Alineación: left, center, right, justify
+  **Text:**
+  - `--text=<text>` - Text to format (repeatable for multiple fragments)
+  - `--color=<color>` - Hex color (#FF0000) or name (primary, error, etc.)
+  - `--align=<type>` - Alignment: left, center, right, justify
+  - `--add_line=<position>` - Add line breaks: none, before, after, both
 
-  **Efectos:**
+  **Effects:**
   - `--bold`, `--dim`, `--italic`, `--underline`
-  - `--blink`, `--reverse`, `--strikethrough`
+  - `--blink`, `--reverse`, `--hidden`, `--strikethrough`, `--link`
 
-  **Manipulación de Color:**
-  - `--lighten=N` - Aclara el color N tonos (1-6)
-  - `--darken=N` - Oscurece el color N tonos (1-6)
-  - `--inverted` - Invierte el color (intercambia fondo/texto)
+  **Color Manipulation:**
+  - `--lighten=N` - Lighten color N tones (1-6)
+  - `--darken=N` - Darken color N tones (1-6)
+  - `--inverted` - Invert color (swap background/text)
 
-  **Tabla:**
-  - `--table` - Activa modo tabla
-  - `--headers=<csv>` - Cabeceras separadas por comas
-  - `--row=<csv>` - Fila de datos (repetible)
-  - `--header-color=<color>` - Color de cabeceras
-  - `--row-color=<color>` - Color de filas
+  **Table:**
+  - `--table` - Enable table mode
+  - `--headers=<csv>` - Headers separated by commas
+  - `--row=<csv>` - Data row (repeatable)
+  - `--header_color=<color>` - Header color
+  - `--row_color=<color>` - Row color
+  - `--cell_color=<color>` - Cell color (repeatable)
+  - `--header_effects=<csv>` - Header effects (comma separated)
+  - `--row_effects=<csv>` - Row effects (comma separated)
+  - `--cell_effects=<csv>` - Cell effects (repeatable)
 
-  ## Salida
+  ## Output
 
-  El CLI devuelve el string con códigos ANSI sin interpretar:
+  The CLI returns the string with ANSI codes without interpretation:
 
-      result=$(./aurora --text="Éxito" --color=success --bold)
-      echo "$result"  # Muestra el texto con formato
+      result=$(./aurora --text="Success" --color=success --bold)
+      echo "$result"  # Shows the formatted text
+
+  ## Examples
+
+      # Basic text formatting
+      ./aurora --text="Hello World" --color=primary --bold
+
+      # Multiple text fragments with different colors
+      ./aurora --text="Error: " --color=error --text="File not found" --color=warning
+
+      # Table formatting
+      ./aurora --table --headers="Name,Age,Role" --row="John,25,Developer" --row="Ana,30,Designer"
+
+      # Color manipulation
+      ./aurora --text="Warning" --color=warning --lighten=2 --italic
+
+      # Custom hex color
+      ./aurora --text="Custom" --color=#FF6B35 --bold
+
+      # Get version
+      ./aurora --version
+
+      # Show help
+      ./aurora --help
   """
 
   # Solo los aliases necesarios
@@ -426,98 +454,156 @@ defmodule Aurora.CLI do
   defp show_help do
     # Banner
     title = %ChunkText{
-      text: "⚡ AURORA CLI ⚡",
+      text: ~S"""
+      🌈 AURORA CLI
+      """,
       color: Color.to_color_info(:primary),
       effects: %EffectInfo{bold: true}
     }
 
     subtitle = %ChunkText{
-      text: "Formatea texto en terminal con colores y efectos ANSI",
+      text: ~S"""
+      Format terminal text with colors and ANSI effects
+      """,
       color: Color.to_color_info(:secondary),
       effects: %EffectInfo{italic: true}
     }
 
-    # Secciones
+    # Description
+    description = %ChunkText{
+      text: ~S"""
+      Transform your boring terminal into a colorful experience
+      """,
+      color: Color.to_color_info(:info),
+      effects: %EffectInfo{dim: true}
+    }
+
+    # Usage section
     usage_title = %ChunkText{
-      text: "\n📘 USO",
+      text: ~S"""
+      📘 USAGE
+      """,
       color: Color.to_color_info(:info),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
     usage_text = %ChunkText{
-      text:
-        "  aurora --text=\"tu texto\" --color=#FF0000 --bold\n  aurora --table --headers=\"A,B\" --row=\"1,2\"",
+      text: ~S"""
+      # Basic text formatting
+      aurora --text="Hello world" --color=primary --bold
+      # Multiple text fragments
+      aurora --text="Error: " --color=error --text="File not found" --color=warning
+      # Table formatting
+      aurora --table --headers="Name,Age" --row="John,25" --row="Jane,30"
+      """,
       color: Color.to_color_info(:no_color)
     }
 
+    # Options section
     options_title = %ChunkText{
-      text: "\n🎨 OPCIONES",
+      text: ~S"""
+      ⚙️  OPTIONS
+      """,
       color: Color.to_color_info(:success),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
-    text_mode = %ChunkText{
-      text:
-        "  --text=<texto>       Texto a formatear (repetible)\n" <>
-          "  --color=<color>      Color (#HEX o nombre: primary, error, warning, etc.)\n" <>
-          "  --align=<tipo>       Alineación (left, center, right, justify)\n" <>
-          "  --bold, --italic     Efectos de texto\n" <>
-          "  --underline, --dim   Más efectos disponibles\n" <>
-          "  --lighten=<n>        Aclara color (1-6 tonos)\n" <>
-          "  --darken=<n>         Oscurece color (1-6 tonos)",
+    # Text mode options
+    text_options = %ChunkText{
+      text: ~S"""
+      TEXT OPTIONS:
+        --text=<text>        Text to format (repeatable)
+        --color=<color>      Color name (:primary, :error) or hex (#FF0000)
+        --align=<align>      left, right, center, justify
+        --add-line=<pos>     Add newlines: before, after, both, none
+      EFFECTS: --bold, --dim, --italic, --underline, --blink, --reverse, --strikethrough
+      """,
       color: Color.to_color_info(:ternary)
     }
 
-    table_mode = %ChunkText{
-      text:
-        "\n  --table              Activa modo tabla\n" <>
-          "  --headers=<csv>      Cabeceras separadas por comas\n" <>
-          "  --row=<csv>          Fila de datos (repetible)\n" <>
-          "  --header-color       Color de cabeceras\n" <>
-          "  --row-color          Color de filas",
+    # Color manipulation options
+    color_manip_options = %ChunkText{
+      text: ~S"""
+      COLOR MANIPULATION:
+        --lighten=<n>        Lighten color by N tones (1-6)
+        --darken=<n>         Darken color by N tones (1-6)
+        --inverted           Invert foreground/background colors
+      """,
       color: Color.to_color_info(:ternary)
     }
 
-    effects_title = %ChunkText{
-      text: "\n✨ EFECTOS",
-      color: Color.to_color_info(:warning),
-      effects: %EffectInfo{bold: true, underline: true}
+    # Table options
+    table_options = %ChunkText{
+      text: ~s"""
+      TABLE OPTIONS:
+        --table              Enable table mode
+        --headers=<csv>      Header row (comma-separated)
+        --row=<csv>          Data row (comma-separated, repeatable)
+        --header-color       Color for headers
+        --row-color          Default color for data rows
+        --header-effects     Effects for headers (comma-separated)
+        --row-effects        Effects for data rows (comma-separated)
+        --cell-color         Color for individual cells (repeatable)
+        --cell-effects       Effects for individual cells (repeatable)
+      """,
+      color: Color.to_color_info(:menu)
     }
 
-    effects_list = %ChunkText{
-      text:
-        "  bold, dim, italic, underline, blink, reverse, strikethrough\n" <>
-          "  Usar como: --bold --italic",
-      color: Color.to_color_info(:ternary)
-    }
-
+    # Quick examples
     examples_title = %ChunkText{
-      text: "\n🚀 EJEMPLOS",
+      text: ~S"""
+      ✨ QUICK EXAMPLES
+      """,
       color: Color.to_color_info(:primary),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
-    example1 = %ChunkText{
-      text: "  $ aurora --text=\"¡Hola!\" --color=primary --bold",
+    examples = %ChunkText{
+      text: ~S"""
+      # Simple colored text
+      $ aurora --text="Success!" --color=success --bold
+      # Multiple fragments with different colors
+      $ aurora --text="Error: " --color=error --text="File missing" --color=warning
+      # Custom hex color with effects
+      $ aurora --text="Custom" --color=#FF6B35 --italic --underline
+      # Lighten a color
+      $ aurora --text="Warning" --color=warning --lighten=2 --bold
+      # Formatted table
+      $ aurora --table --headers="Name,Age,Role" --row="John,25,Dev" --row="Jane,30,Lead"
+      # Get version
+      $ aurora --version
+      # Show this help
+      $ aurora --help
+      """,
       color: Color.to_color_info(:success),
       effects: %EffectInfo{dim: true}
     }
 
-    example2 = %ChunkText{
-      text: "\n  $ aurora --text=\"Error: \" --color=error --text=\"Algo falló\" --color=warning",
-      color: Color.to_color_info(:success),
-      effects: %EffectInfo{dim: true}
+    # Available colors
+    colors_title = %ChunkText{
+      text: ~S"""
+      🎨 AVAILABLE COLORS
+      """,
+      color: Color.to_color_info(:warning),
+      effects: %EffectInfo{bold: true, underline: true}
     }
 
-    example3 = %ChunkText{
-      text: "\n  $ aurora --table --headers=\"Nombre,Edad\" --row=\"Ana,25\" --row=\"Juan,30\"",
-      color: Color.to_color_info(:success),
-      effects: %EffectInfo{dim: true}
+    colors = %ChunkText{
+      text: ~S"""
+      Basic: primary, secondary, ternary, quaternary
+      Status: success, warning, error, info, debug
+      Special: critical, alert, emergency, happy, notice, menu, no_color
+      """,
+      color: Color.to_color_info(:secondary)
     }
 
+    # Footer
     footer = %ChunkText{
-      text: "\n\n✨ Más info: https://github.com/tu-usuario/aurora\n",
-      color: Color.to_color_info(:secondary),
+      text: ~S"""
+      💡 Pro tip: Use $(aurora --text="your text" --color=primary) to capture output in variables
+      📖 More info: https://github.com/lorenzo-sf/aurora
+      """,
+      color: Color.to_color_info(:info),
       effects: %EffectInfo{italic: true}
     }
 
@@ -525,17 +611,17 @@ defmodule Aurora.CLI do
     chunks = [
       title,
       subtitle,
+      description,
       usage_title,
       usage_text,
       options_title,
-      text_mode,
-      table_mode,
-      effects_title,
-      effects_list,
+      text_options,
+      color_manip_options,
+      table_options,
       examples_title,
-      example1,
-      example2,
-      example3,
+      examples,
+      colors_title,
+      colors,
       footer
     ]
 

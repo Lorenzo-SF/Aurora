@@ -1,9 +1,50 @@
 defmodule Aurora.Convert do
   @moduledoc """
-  Módulo de utilidades para conversión y transformación de datos.
+  Utilities module for data conversion and transformation.
 
-  Soporta conversión entre tipos nativos de Elixir y structs de Aurora,
-  así como conversión a tipos externos específicos.
+  Supports conversion between native Elixir types and Aurora structs,
+  as well as conversion to specific external types.
+
+  ## Features
+
+  - Type conversion between native Elixir types and Aurora structs
+  - Text normalization with diacritic removal
+  - Visible length calculation (excluding ANSI codes)
+  - Deep merging of nested maps
+  - Key conversion (atom/string) in nested structures
+  - Table format detection
+
+  ## Examples
+
+      # Convert to native types
+      Aurora.Convert.to("hello", :string)
+      Aurora.Convert.to("123", :integer)
+
+      # Convert to Aurora structs
+      chunk = Aurora.Convert.to("text", Aurora.Structs.ChunkText)
+      color = Aurora.Convert.to(:primary, Aurora.Structs.ColorInfo)
+      format = Aurora.Convert.to(["hello"], Aurora.Structs.FormatInfo)
+
+      # Convert external types
+      date = Aurora.Convert.to("2023-01-01", {:external, Date, :from_iso8601!})
+
+      # Text normalization
+      normalized = Aurora.Convert.normalize_text("café", :lower)  # "cafe"
+
+      # List mapping to a specific type
+      chunks = Aurora.Convert.map_list(["text1", "text2"], Aurora.Structs.ChunkText)
+
+      # Remove diacritics
+      clean_text = Aurora.Convert.remove_diacritics("resumé")  # "resume"
+
+      # Calculate visible length (excluding ANSI codes)
+      length = Aurora.Convert.visible_length("\\e[31mHello\\e[0m")  # 5
+
+      # Deep merge nested maps
+      merged = Aurora.Convert.deep_merge(%{a: %{b: 1}}, %{a: %{c: 2}})
+
+      # Atomize keys in nested structures
+      atomized = Aurora.Convert.atomize_keys(%{"a" => %{"b" => 1}})  # %{a: %{b: 1}}
   """
 
   alias Aurora.{Color, Ensure}

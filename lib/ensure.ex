@@ -1,8 +1,44 @@
 defmodule Aurora.Ensure do
   @moduledoc """
-  Módulo para garantizar tipos de datos específicos con valores seguros por defecto.
+  Module to ensure specific data types with safe default values.
 
-  Soporta tipos nativos de Elixir, structs de Aurora y tipos externos.
+  Supports native Elixir types, Aurora structs, and external types.
+
+  ## Features
+
+  - Type guarantee with safe default values
+  - Conversion to native Elixir types
+  - Conversion to Aurora structs
+  - Safe type conversion with error handling
+  - List operations with type conversion
+
+  ## Examples
+
+      # Ensure native types with safe defaults
+      Aurora.Ensure.string(nil)        # ""
+      Aurora.Ensure.integer("123")     # 123
+      Aurora.Ensure.integer("invalid") # 0
+      Aurora.Ensure.list(nil)          # []
+      Aurora.Ensure.list("text")       # ["text"]
+      Aurora.Ensure.map(nil)           # %{}
+      Aurora.Ensure.boolean("true")    # true
+      Aurora.Ensure.boolean("false")   # false
+
+      # Ensure Aurora structs with defaults
+      chunk = Aurora.Ensure.chunk_text(nil)        # %Aurora.Structs.ChunkText{text: ""}
+      chunk = Aurora.Ensure.chunk_text("hello")    # %Aurora.Structs.ChunkText{text: "hello"}
+      color = Aurora.Ensure.color_info(:primary)   # %Aurora.Structs.ColorInfo{...}
+      format = Aurora.Ensure.format_info([])       # %Aurora.Structs.FormatInfo{chunks: []}
+      effects = Aurora.Ensure.effect_info(nil)     # %Aurora.Structs.EffectInfo{...}
+
+      # Convert list of values to specific type
+      chunks = Aurora.Ensure.list_of(["text1", "text2"], Aurora.Structs.ChunkText)
+
+      # Normalize text
+      normalized = Aurora.Ensure.normalized_text("café", :lower)  # "cafe"
+
+      # Ensure with external types (with default value)
+      date = Aurora.Ensure.type(nil, {:external, Date, ~D[2000-01-01]})
   """
 
   alias Aurora.{Color, Convert}

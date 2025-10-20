@@ -20,8 +20,8 @@ defmodule Aurora.CLITest do
           CLI.main(["--help"])
         end)
 
-      assert String.contains?(output, "USO")
-      assert String.contains?(output, "EJEMPLOS")
+      assert String.contains?(output, "USAGE")
+      assert String.contains?(output, "QUICK EXAMPLES")
     end
 
     test "shows help with no arguments" do

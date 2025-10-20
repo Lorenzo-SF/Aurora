@@ -1,57 +1,94 @@
 defmodule Aurora.Structs.FormatInfo do
   @moduledoc """
-  Estructura de configuración global para formateo de texto compuesto.
+  Global configuration structure for compound text formatting.
 
-  `FormatInfo` contiene toda la información necesaria para formatear un conjunto
-  de fragmentos de texto (chunks) con opciones de alineación, efectos, indentación
-  y configuraciones adicionales.
+  `FormatInfo` contains all the information needed to format a set of text chunks
+  with alignment options, effects, indentation, and additional configurations.
 
-  ## Campos
+  ## Fields
 
-  ### Contenido
-  - `chunks` - Lista de ChunkText a formatear (requerido)
-  - `default_color` - Color por defecto para chunks sin color
+  ### Content
+  - `chunks` - List of ChunkText to format (required)
+  - `default_color` - Default color for chunks without color
 
-  ### Alineación e indentación
-  - `align` - Tipo de alineación (:left, :right, :center, :justify, :center_block)
-  - `manual_tabs` - Número de tabs manuales (-1 para automático)
+  ### Alignment and Indentation
+  - `align` - Alignment type (:left, :right, :center, :justify, :center_block)
+  - `manual_tabs` - Number of manual tabs (-1 for automatic based on color)
 
-  ### Configuraciones adicionales
-  - `add_line` - Añadir saltos de línea (:before, :after, :both, :none)
-  - `animation` - Prefijo de animación
-  - `mode` - Modo de renderizado (:normal, :table, :raw)
+  ### Additional Settings
+  - `add_line` - Add line breaks (:before, :after, :both, :none)
+  - `animation` - Animation prefix string
+  - `mode` - Rendering mode (:normal, :table, :raw)
 
-  ## Tipos de alineación
+  ## Alignment Types
 
-  - `:left` - Alineación izquierda (predeterminada)
-  - `:right` - Alineación derecha
-  - `:center` - Centrado
-  - `:justify` - Justificado
-  - `:center_block` - Centrado en bloque (para tablas)
+  - `:left` - Left alignment (default)
+  - `:right` - Right alignment
+  - `:center` - Center alignment
+  - `:justify` - Justified alignment
+  - `:center_block` - Center block alignment (for tables)
 
-  ## Modos de renderizado
+  ## Rendering Modes
 
-  - `:normal` - Renderizado estándar con formateo completo
-  - `:table` - Optimizado para renderizado de tablas
-  - `:raw` - Renderizado mínimo sin procesamiento adicional
+  - `:normal` - Standard rendering with full formatting
+  - `:table` - Optimized for table rendering
+  - `:raw` - Minimal rendering with precise coordinate positioning
 
-  ## Uso básico
+  ## Examples
 
-      iex> chunk = %Aurora.Structs.ChunkText{text: "Hola"}
-      iex> _format_info = %Aurora.Structs.FormatInfo{
-      ...>   chunks: [chunk],
-      ...>   align: :center,
-      ...>   mode: :table,
-      ...>   add_line: :both
-      ...> }
+      # Basic usage
+      chunk = %Aurora.Structs.ChunkText{text: "Hello"}
+      format_info = %Aurora.Structs.FormatInfo{
+        chunks: [chunk],
+        align: :center,
+        add_line: :both
+      }
+      result = Aurora.Format.format(format_info)
 
-  ## Características
+      # Table mode
+      chunks = [
+        [%Aurora.Structs.ChunkText{text: "Name", color: :primary}, %Aurora.Structs.ChunkText{text: "Age", color: :primary}],
+        [%Aurora.Structs.ChunkText{text: "John", color: :secondary}, %Aurora.Structs.ChunkText{text: "25", color: :secondary}]
+      ]
+      format_info = %Aurora.Structs.FormatInfo{
+        chunks: chunks,
+        mode: :table,
+        align: :center_block
+      }
+      result = Aurora.Format.format(format_info)
 
-  - El campo `chunks` es obligatorio
-  - La indentación puede ser manual o automática basada en colores
-  - Soporta múltiples modos de renderizado para diferentes contextos
-  - Permite animaciones y prefijos personalizados
-  - Flexible configuración de saltos de línea
+      # With automatic indentation based on color
+      chunks = [
+        %Aurora.Structs.ChunkText{text: "Primary", color: :primary},
+        %Aurora.Structs.ChunkText{text: "Secondary", color: :secondary}
+      ]
+      format_info = %Aurora.Structs.FormatInfo{
+        chunks: chunks,
+        manual_tabs: -1  # Auto-indent based on color
+      }
+      result = Aurora.Format.format(format_info)
+
+      # Raw mode with precise positioning
+      chunk = %Aurora.Structs.ChunkText{
+        text: "Positioned text",
+        pos_x: 10,
+        pos_y: 5
+      }
+      format_info = %Aurora.Structs.FormatInfo{
+        chunks: [chunk],
+        mode: :raw
+      }
+      result = Aurora.Format.format(format_info)  # Returns: "\\e[5;10HPositioned text"
+
+  ## Features
+
+  - The `chunks` field is required
+  - Indentation can be manual or automatic based on color
+  - Supports multiple rendering modes for different contexts
+  - Allows animations and custom prefixes
+  - Flexible line break configuration
+  - Compatible with all Aurora formatting functions
+  - Works with both simple and complex text structures
   """
 
   @enforce_keys [:chunks]

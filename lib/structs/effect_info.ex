@@ -1,41 +1,62 @@
 defmodule Aurora.Structs.EffectInfo do
   @moduledoc """
-  Estructura que representa información de efectos para texto en terminal.
+  Structure representing text effects information for terminal.
 
-  `EffectInfo` encapsula todos los efectos de texto que se pueden aplicar,
-  incluyendo negrita, cursiva, subrayado y otros efectos ANSI.
+  `EffectInfo` encapsulates all text effects that can be applied,
+  including bold, italic, underline, and other ANSI effects.
 
-  ## Campos
+  ## Fields
 
-  - `bold` - Texto en negrita
-  - `dim` - Texto atenuado/tenue
-  - `italic` - Texto en cursiva
-  - `underline` - Texto subrayado
-  - `blink` - Texto parpadeante
-  - `reverse` - Colores invertidos
-  - `hidden` - Texto oculto
-  - `strikethrough` - Texto tachado
-  - `link` - Texto como enlace (underline)
+  - `bold` - Bold text
+  - `dim` - Dim/faint text
+  - `italic` - Italic text
+  - `underline` - Underlined text
+  - `blink` - Blinking text
+  - `reverse` - Inverted colors
+  - `hidden` - Hidden text
+  - `strikethrough` - Strikethrough text
+  - `link` - Link text (underline)
 
-  ## Uso básico
+  ## Examples
 
-      iex> # Efectos básicos
-      iex> _effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+      # Basic effects
+      effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
 
-      iex> # Todos los efectos activados
-      iex> _all_effects = %Aurora.Structs.EffectInfo{
-      ...>   bold: true,
-      ...>   italic: true,
-      ...>   underline: true,
-      ...>   blink: true
-      ...> }
+      # All effects activated
+      all_effects = %Aurora.Structs.EffectInfo{
+        bold: true,
+        italic: true,
+        underline: true,
+        blink: true,
+        reverse: true,
+        strikethrough: true
+      }
 
-  ## Características
+      # Combining effects
+      emphasized = %Aurora.Structs.EffectInfo{
+        bold: true,
+        underline: true
+      }
 
-  - Todos los campos son opcionales y por defecto están en `false`
-  - Se puede combinar cualquier número de efectos
-  - Los efectos se aplican usando códigos de escape ANSI
-  - Algunos efectos pueden no ser soportados en todos los terminales
+      # Using with ChunkText
+      chunk = %Aurora.Structs.ChunkText{
+        text: "Important text",
+        effects: %Aurora.Structs.EffectInfo{bold: true, underline: true}
+      }
+
+      # Applying effects to text
+      effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+      result = Aurora.Effects.apply_effect_info("Formatted text", effects)
+
+  ## Features
+
+  - All fields are optional and default to `false`
+  - Any number of effects can be combined
+  - Effects are applied using ANSI escape codes
+  - Some effects may not be supported in all terminals
+  - Can be used with Aurora's formatting system
+  - Works with both normal and table rendering modes
+  - Compatible with color information in ChunkText structs
   """
 
   defstruct bold: false,

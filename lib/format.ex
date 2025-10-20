@@ -1,48 +1,65 @@
 defmodule Aurora.Format do
   @moduledoc """
-  Módulo principal de formateo de texto con soporte para alineación, indentación y efectos.
+  Main text formatting module with support for alignment, indentation, and effects.
 
-  Este módulo proporciona las funcionalidades principales para formatear texto
-  con colores ANSI, alineación, indentación automática basada en colores y
-  efectos de terminal.
+  This module provides the core functionality for formatting text with ANSI colors,
+  alignment, automatic indentation based on colors, and terminal effects. It's the
+  primary interface for converting structured data into formatted terminal output.
 
-  ## Características principales
+  ## Features
 
-  - Formateo de texto con estructura FormatInfo
-  - Alineación de texto (left, right, center, justify, center_block)
-  - Indentación automática basada en tipos de color
-  - Indentación manual configurable
-  - Soporte para tablas y datos estructurados
-  - Limpieza de códigos ANSI
-  - Formateo de JSON
+  - Text formatting with `FormatInfo` structure
+  - Text alignment (left, right, center, justify, center_block)
+  - Automatic indentation based on color types
+  - Manual configurable indentation
+  - Support for tables and structured data
+  - ANSI code cleaning
+  - JSON formatting
+  - Precise text positioning with coordinates
 
-  ## Uso básico
+  ## Examples
 
-      iex> chunk = %Aurora.Structs.ChunkText{text: "Hola mundo"}
-      iex> format_info = %Aurora.Structs.FormatInfo{chunks: [chunk]}
-      iex> Aurora.Format.format(format_info)
+      # Basic text formatting
+      chunk = %Aurora.Structs.ChunkText{text: "Hello world"}
+      format_info = %Aurora.Structs.FormatInfo{chunks: [chunk]}
+      result = Aurora.Format.format(format_info)
 
-  ## Indentación automática
+      # Formatted table
+      rows = [
+        [%Aurora.Structs.ChunkText{text: "Name", color: :primary}, %Aurora.Structs.ChunkText{text: "Age", color: :primary}],
+        [%Aurora.Structs.ChunkText{text: "John", color: :secondary}, %Aurora.Structs.ChunkText{text: "25", color: :secondary}]
+      ]
+      format_info = %Aurora.Structs.FormatInfo{chunks: rows, mode: :table}
+      result = Aurora.Format.format(format_info)
 
-  El sistema utiliza una indentación automática basada en el tipo de color:
+      # Text with automatic indentation based on color
+      chunks = [
+        %Aurora.Structs.ChunkText{text: "Primary text", color: :primary},
+        %Aurora.Structs.ChunkText{text: "Secondary text", color: :secondary}
+      ]
+      result = Aurora.Format.format(chunks)
 
-  - `:primary` - 1 nivel (4 espacios)
-  - `:secondary`, `:info` - 2 niveles (8 espacios)
-  - `:ternary` - 3 niveles (12 espacios)
-  - `:quaternary`, `:menu` - 4 niveles (16 espacios)
-  - `:success`, `:warning`, `:error` - 5 niveles (20 espacios)
-  - `:debug` - 1 nivel (4 espacios)
-  - `:no_color` - 0 niveles
+  ## Automatic Indentation
 
-  ## Alineación
+  The system uses automatic indentation based on the color type:
 
-  Soporta múltiples tipos de alineación:
+  - `:primary` - 1 level (4 spaces)
+  - `:secondary`, `:info` - 2 levels (8 spaces)
+  - `:ternary` - 3 levels (12 spaces)
+  - `:quaternary`, `:menu` - 4 levels (16 spaces)
+  - `:success`, `:warning`, `:error` - 5 levels (20 spaces)
+  - `:debug` - 1 level (4 spaces)
+  - `:no_color` - 0 levels
 
-  - `:left` - Alineación izquierda (predeterminada)
-  - `:right` - Alineación derecha
-  - `:center` - Centrado
-  - `:justify` - Justificado
-  - `:center_block` - Centrado en bloque para tablas
+  ## Alignment Options
+
+  Supports multiple alignment types:
+
+  - `:left` - Left alignment (default)
+  - `:right` - Right alignment
+  - `:center` - Center alignment
+  - `:justify` - Justified alignment
+  - `:center_block` - Center block alignment for tables
   """
 
   alias Aurora.{Color, Convert, Effects, Ensure}

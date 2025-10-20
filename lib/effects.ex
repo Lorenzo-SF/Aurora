@@ -1,36 +1,52 @@
 defmodule Aurora.Effects do
   @moduledoc """
-  Módulo para aplicar efectos ANSI a texto.
+  Module for applying ANSI effects to text.
 
-  Este módulo proporciona funcionalidades para aplicar diferentes tipos de efectos
-  como negrita, cursiva, subrayado, etc. usando códigos de escape ANSI.
+  This module provides functionality to apply different types of effects like
+  bold, italic, underline, etc. using ANSI escape codes.
 
-  Puede trabajar con texto simple y aplicar efectos basados en EffectInfo,
-  o procesar ChunkText que ya contiene efectos.
+  It can work with simple text and apply effects based on EffectInfo,
+  or process ChunkText that already contains effects.
 
-  ## Efectos soportados
+  ## Supported Effects
 
-  - `:bold` - Texto en negrita
-  - `:dim` - Texto tenue/atenuado
-  - `:italic` - Texto en cursiva
-  - `:underline` - Texto subrayado
-  - `:blink` - Texto parpadeante
-  - `:reverse` - Colores invertidos
-  - `:hidden` - Texto oculto
-  - `:strikethrough` - Texto tachado
-  - `:link` - Texto como enlace (underline)
+  - `:bold` - Bold text
+  - `:dim` - Dim/faint text
+  - `:italic` - Italic text
+  - `:underline` - Underlined text
+  - `:blink` - Blinking text
+  - `:reverse` - Inverted colors
+  - `:hidden` - Hidden text
+  - `:strikethrough` - Strikethrough text
+  - `:link` - Link text (underline)
 
-  ## Uso básico
+  ## Examples
 
-      iex> Aurora.Effects.apply_effect("texto", :bold)
-      "\\e[1mtexto\\e[0m"
+      # Apply single effect to text
+      Aurora.Effects.apply_effect("Hello", :bold)
+      # "\\e[1mHello\\e[0m"
 
-      iex> Aurora.Effects.apply_multiple_effects("texto", [:bold, :underline])
-      "\\e[1m\\e[4mtexto\\e[0m"
+      # Apply multiple effects
+      Aurora.Effects.apply_multiple_effects("Hello", [:bold, :underline])
+      # "\\e[1m\\e[4mHello\\e[0m"
 
-      iex> effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
-      iex> Aurora.Effects.apply_effect_info("texto", effects)
-      "\\e[3m\\e[1mtexto\\e[0m"
+      # Apply effects from EffectInfo struct
+      effects = %Aurora.Structs.EffectInfo{bold: true, italic: true}
+      Aurora.Effects.apply_effect_info("Hello", effects)
+      # "\\e[3m\\e[1mHello\\e[0m"
+
+      # Apply effects to ChunkText
+      chunk = %Aurora.Structs.ChunkText{
+        text: "Hello",
+        effects: %Aurora.Structs.EffectInfo{bold: true}
+      }
+      result = Aurora.Effects.apply_chunk_effects(chunk)
+
+      # Apply effects using keyword options
+      Aurora.Effects.apply_effects("Hello", [bold: true, underline: true])
+
+      # Get available effects
+      effects = Aurora.Effects.available_effects()
   """
 
   alias Aurora.Ensure

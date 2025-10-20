@@ -1,20 +1,20 @@
 defmodule Aurora.Color do
   @moduledoc """
-  Sistema completo de gestión de colores con soporte para múltiples formatos.
+  Complete color management system with support for multiple formats.
 
-  Proporciona conversión entre formatos de color (HEX, RGB, HSV, HSL, CMYK, ARGB),
-  aplicación de colores ANSI en terminal, y manipulación de colores (aclarar/oscurecer).
+  Provides conversion between color formats (HEX, RGB, HSV, HSL, CMYK, ARGB),
+  application of ANSI colors in terminal, and color manipulation (lighten/darken).
 
-  ## Características
+  ## Features
 
-  - Conversión automática entre formatos de color
-  - Aplicación de colores ANSI para terminal
-  - Manipulación de luminosidad (aclarar/oscurecer)
-  - Soporte para colores invertidos
-  - Gestión de paletas de colores configurables
-  - Sistema de gradientes expandibles
+  - Automatic conversion between color formats
+  - ANSI color application for terminal
+  - Brightness manipulation (lighten/darken)
+  - Support for inverted colors
+  - Configurable color palettes
+  - Expandable gradient system
 
-  ## Formatos Soportados
+  ## Supported Formats
 
   - **HEX**: `"#FF0000"`, `"#A1E7FA"`
   - **RGB**: `{255, 0, 0}`
@@ -22,31 +22,37 @@ defmodule Aurora.Color do
   - **HSV**: `{0.0, 1.0, 1.0}` (Hue, Saturation, Value)
   - **HSL**: `{0.0, 1.0, 0.5}` (Hue, Saturation, Lightness)
   - **CMYK**: `{0.0, 1.0, 1.0, 0.0}` (Cyan, Magenta, Yellow, Key/Black)
-  - **Átomo**: `:primary`, `:error`, `:success`, etc.
+  - **Atom**: `:primary`, `:error`, `:success`, etc.
   - **Struct**: `%ColorInfo{}`
 
-  ## Uso Básico
+  ## Examples
 
-      # Conversión automática de formato
+      # Automatic format conversion
       color = Aurora.Color.to_color_info("#FF0000")
       color = Aurora.Color.to_color_info({255, 0, 0})
       color = Aurora.Color.to_color_info(:primary)
 
-      # Aplicar color a texto
-      texto_coloreado = Aurora.Color.apply_color("¡Hola!", :primary)
+      # Apply color to text
+      colored_text = Aurora.Color.apply_color("Hello!", :primary)
 
-      # Manipular luminosidad
-      color_claro = Aurora.Color.aclarar(color, 2)   # 2 tonos más claro
-      color_oscuro = Aurora.Color.oscurecer(color, 3) # 3 tonos más oscuro
+      # Manipulate brightness
+      lighter_color = Aurora.Color.aclarar(color, 2)   # 2 tones lighter
+      darker_color = Aurora.Color.oscurecer(color, 3)  # 3 tones darker
 
-      # Convertir entre formatos
+      # Convert between formats
       rgb = Aurora.Color.hex_to_rgb("#FF0000")      # {255, 0, 0}
       hex = Aurora.Color.rgb_to_hex({255, 0, 0})    # "#FF0000"
       hsv = Aurora.Color.rgb_to_hsv({255, 0, 0})    # {0.0, 1.0, 1.0}
 
-  ## Configuración
+      # Get all configured colors
+      colors = Aurora.Color.get_all_colors()
 
-  Los colores se configuran en `config/config.exs`:
+      # Find color by name
+      primary_color = Aurora.Color.find_by_name(:primary)
+
+  ## Configuration
+
+  Colors are configured in `config/config.exs`:
 
       config :aurora, :colors,
         colors: %{
@@ -58,18 +64,18 @@ defmodule Aurora.Color do
           ocean: [...]
         }
 
-  ## Struct ColorInfo
+  ## ColorInfo Struct
 
-  Todas las conversiones devuelven un struct `%ColorInfo{}` que contiene:
+  All conversions return a `%ColorInfo{}` struct containing:
 
-  - `hex` - Representación hexadecimal
-  - `rgb` - Tupla RGB
-  - `argb` - Tupla ARGB (con alpha)
-  - `hsv` - Tupla HSV
-  - `hsl` - Tupla HSL
-  - `cmyk` - Tupla CMYK
-  - `name` - Nombre del color (si aplica)
-  - `inverted` - Boolean indicando si está invertido
+  - `hex` - Hexadecimal representation
+  - `rgb` - RGB tuple
+  - `argb` - ARGB tuple (with alpha)
+  - `hsv` - HSV tuple
+  - `hsl` - HSL tuple
+  - `cmyk` - CMYK tuple
+  - `name` - Color name (if applicable)
+  - `inverted` - Boolean indicating if inverted
   """
 
   alias Aurora.Structs.{ChunkText, ColorInfo}

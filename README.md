@@ -1,25 +1,26 @@
 # Aurora 🎨
 
-> _"Porque la vida es muy corta para terminales en blanco y negro"_
+> _"Because life is too short for black and white terminals"_ 🌈
 
-🌈 **Sistema de formateo y rendering para terminales coloridas**
+**Colorful terminal formatting and rendering library**
 
-**Nivel 1A de Proyecto Ypsilon** - Librería base sin dependencias para formateo, colores ANSI y rendering de texto.
+Aurora is a dependency-free library for formatting, ANSI colors, and terminal rendering. It transforms your boring terminal output into a colorful experience that even your cat will want to look at.
 
-¿Cansado de ver texto aburrido en tu terminal? ¿Quieres que tus logs tengan más estilo que un influencer en Instagram? **Aurora** es tu nuevo mejor amigo. Convierte tu terminal del equivalente digital de una pared gris en un festival de colores y efectos que hasta tu gato querrá ver.
+## Features
 
-## ✨ Filosofía de Aurora
+- 🎨 **Rich color support** - HEX, RGB, named colors, gradients
+- ✨ **Text effects** - Bold, italic, underline, and more ANSI effects
+- 📊 **Table rendering** - Formatted tables with color support
+- 📝 **Text alignment** - Left, right, center, justify, and block centering
+- 🔧 **Struct-based** - Clean `ChunkText`, `ColorInfo`, `EffectInfo`, `FormatInfo` structures
+- 🖥️ **CLI support** - Can be used as a command-line tool
+- 🗂️ **No dependencies** - Completely self-contained
 
-Aurora está diseñado con **simplicidad en mente**:
+## Installation
 
-- 🚀 **Uso básico ultra-simple** - `Aurora.format/2` con opciones básicas para el 90% de casos
-- 🔧 **Módulos especializados** - Para casos avanzados que requieren control total
-- 📚 **Documentación clara** - Con ejemplos que hasta tu abuela entendería
-
-## 🚀 Instalación (más fácil que hacer café)
+Add Aurora to your `mix.exs` dependencies:
 
 ```elixir
-# En tu mix.exs, agrega esta línea mágica:
 def deps do
   [
     {:aurora, "~> 1.0"}
@@ -27,13 +28,139 @@ def deps do
 end
 ```
 
+Then run:
 ```bash
-mix deps.get  # ¡Y ya está! 🎉
+mix deps.get
 ```
 
-### 🎨 Configuración Opcional
+## Quick Start
 
-Si quieres personalizar los colores, crea un archivo `config/config.exs` en tu proyecto:
+### Basic Text Formatting
+
+```elixir
+# Simple colored text
+Aurora.format("Hello World!", color: :primary) |> IO.puts()
+
+# Text with effects
+Aurora.format("Error occurred", color: :error, bold: true) |> IO.puts()
+
+# Centered text
+Aurora.format("Title", color: :info, align: :center) |> IO.puts()
+
+# Multiple lines with same format
+Aurora.format(["Line 1", "Line 2", "Line 3"], color: :success) |> IO.puts()
+```
+
+### Advanced Formatting
+
+```elixir
+# Create individual text chunks
+chunks = [
+  Aurora.chunk("Error: ", :error),
+  Aurora.chunk("File not found", :warning),
+  Aurora.chunk(" in ", :no_color),
+  Aurora.chunk("/path/to/file", :info)
+]
+
+# Format multiple chunks together
+Aurora.format_chunks(chunks) |> IO.puts()
+
+# Custom hex color
+Aurora.format("Custom color", color: "#FF6B35") |> IO.puts()
+
+# Apply multiple effects
+Aurora.stylize("Bold and underlined", [:bold, :underline]) |> IO.puts()
+```
+
+### Working with Tables
+
+```elixir
+# Create a table with headers
+headers = [
+  Aurora.chunk("Name", :primary),
+  Aurora.chunk("Age", :primary),
+  Aurora.chunk("Role", :primary)
+]
+
+rows = [
+  [
+    Aurora.chunk("John", :secondary),
+    Aurora.chunk("25", :secondary),
+    Aurora.chunk("Developer", :secondary)
+  ],
+  [
+    Aurora.chunk("Jane", :secondary),
+    Aurora.chunk("30", :secondary),
+    Aurora.chunk("Designer", :secondary)
+  ]
+]
+
+# Format as table
+table_chunks = [headers | rows]
+Aurora.format_chunks(table_chunks, mode: :table) |> IO.puts()
+```
+
+### Using Structs Directly
+
+```elixir
+# Using FormatInfo struct for advanced formatting
+format_info = %Aurora.Structs.FormatInfo{
+  chunks: [
+    %Aurora.Structs.ChunkText{
+      text: "Important title",
+      color: Aurora.Color.to_color_info(:primary),
+      effects: %Aurora.Structs.EffectInfo{bold: true, underline: true}
+    }
+  ],
+  align: :center,
+  add_line: :both
+}
+
+result = Aurora.Format.format(format_info)
+```
+
+### Colors and Effects
+
+#### Available Colors
+- Basic: `:primary`, `:secondary`, `:ternary`, `:quaternary`
+- Status: `:success`, `:warning`, `:error`, `:info`, `:debug`
+- Special: `:critical`, `:alert`, `:emergency`, `:happy`, `:notice`, `:menu`
+
+#### Available Effects
+- `:bold`, `:italic`, `:underline`, `:dim`
+- `:blink`, `:reverse`, `:hidden`, `:strikethrough`
+
+## API Overview
+
+### Main Functions
+
+- `Aurora.format/2` - Format text with color, alignment, and effects
+- `Aurora.colorize/2` - Apply only color to text
+- `Aurora.stylize/2` - Apply effects to text
+- `Aurora.json/2` - Format JSON data with colors
+- `Aurora.chunk/2` - Create a single text chunk
+- `Aurora.chunks/1` - Create multiple chunks from a list
+- `Aurora.format_chunks/2` - Format a list of chunks
+
+### Key Modules
+
+- `Aurora.Format` - Main formatting functions
+- `Aurora.Color` - Color management and conversion
+- `Aurora.Effects` - ANSI text effects
+- `Aurora.Convert` - Data conversion utilities
+- `Aurora.Ensure` - Type safety with defaults
+- `Aurora.CLI` - Command-line interface
+
+### Core Structs
+
+- `ChunkText` - A text fragment with formatting
+- `ColorInfo` - Color information in multiple formats
+- `EffectInfo` - Text effects configuration
+- `FormatInfo` - Complete formatting configuration
+
+## Configuration (Optional)
+
+Customize colors by creating `config/config.exs` in your project:
 
 ```elixir
 # config/config.exs
@@ -41,681 +168,85 @@ import Config
 
 config :aurora, :colors,
   colors: %{
-    primary: %{hex: "#0066CC"},     # Tu color principal
-    error: %{hex: "#DC3545"},       # Tu color de error
-    # ... más colores personalizados
-  }
-```
-
-Ver [configuración completa](#-configuración-personalizada-de-colores) más abajo.
-
-## Arquitectura
-
-Aurora forma parte de **Proyecto Ypsilon**:
-
-```
-                    ┌─────────────────┐
-                    │   NIVEL 3: ARK  │
-                    │  Microframework │
-                    │     Global      │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  NIVEL 2: AEGIS  │
-                    │  CLI/TUI         │
-                    │  Framework       │
-                    └────┬─────┬───────┘
-                         │     │
-           ┌─────────────┘     └─────────────┐
-           │                                 │
-    ┌──────▼────────┐              ┌─────────▼──────┐
-    │ NIVEL 1A:     │              │ NIVEL 1B:      │
-    │ AURORA        │              │ ARGOS          │
-    │ Formatting &  │              │ Execution &    │
-    │ Rendering     │              │ Orchestration  │
-    └───────────────┘              └────────────────┘
-         BASE                              BASE
-      (sin deps) ← ESTÁS AQUÍ           (sin deps)
-```
-
-## 📋 Funciones Disponibles - Referencia Rápida
-
-### 🎯 Funciones Básicas (en Aurora.ex)
-
-| Función             | Descripción                                   | Ejemplo                                        |
-| ------------------- | --------------------------------------------- | ---------------------------------------------- |
-| `Aurora.format/2`   | Formateo con color, align, bold y más         | `Aurora.format("texto", color: :primary)`      |
-| `Aurora.colorize/2` | Solo aplicar color                            | `Aurora.colorize("texto", :error)`             |
-| `Aurora.stylize/2`  | Aplicar efectos ANSI (individuales/múltiples) | `Aurora.stylize("texto", [:bold, :underline])` |
-
-### 📊 Datos Estructurados (en Aurora.ex)
-
-| Función                  | Descripción               | Ejemplo                              |
-| ------------------------ | ------------------------- | ------------------------------------ |
-| `Aurora.json/2`          | JSON formateado           | `Aurora.json(data, color: :info)`    |
-| `Aurora.chunks/1`        | Crear múltiples chunks    | `Aurora.chunks([{"Error", :error}])` |
-| `Aurora.format_chunks/2` | Formatear lista de chunks | `Aurora.format_chunks(chunks)`       |
-
-### 🔧 Utilidades (en Aurora.ex)
-
-| Función                | Descripción         | Ejemplo                                   |
-| ---------------------- | ------------------- | ----------------------------------------- |
-| `Aurora.clean/1`       | Quitar códigos ANSI | `Aurora.clean("\\e[31mTexto\\e[0m")`      |
-| `Aurora.text_length/1` | Longitud sin ANSI   | `Aurora.text_length("\\e[31mHola\\e[0m")` |
-| `Aurora.colors/0`      | Listar colores      | `Aurora.colors()`                         |
-| `Aurora.effects/0`     | Listar efectos      | `Aurora.effects()`                        |
-
-**💡 Para funciones avanzadas** (tablas, badges, divisores, encabezados, efectos específicos, etc.) usar directamente los módulos especializados: `Aurora.Format`, `Aurora.Color`, `Aurora.Effects`, `Aurora.Convert`, `Aurora.Ensure`, `Aurora.Normalize`.
-
-## 🎯 Uso Básico (para el 90% de casos)
-
-### La función mágica: `Aurora.format/2`
-
-```elixir
-# Texto simple con color
-Aurora.format("¡Hola mundo!", color: :primary) |> IO.puts()
-
-# Texto con error (rojo y negrita)
-Aurora.format("Error crítico", color: :error, bold: true) |> IO.puts()
-
-# Texto centrado
-Aurora.format("Título centrado", color: :info, align: :center) |> IO.puts()
-
-# Múltiples líneas con el mismo formato |> IO.puts()
-Aurora.format(["Línea 1", "Línea 2", "Línea 3"], color: :success) |> IO.puts()
-
-# Color personalizado con hex
-Aurora.format("Color custom", color: "#FF6B35") |> IO.puts()
-```
-
-### Opciones básicas de `Aurora.format/2`
-
-| Opción   | Valores                                                   | Descripción          |
-| -------- | --------------------------------------------------------- | -------------------- |
-| `:color` | `:primary`, `:error`, `:success`, etc. o `"#FF0000"`      | Color del texto      |
-| `:align` | `:left`, `:right`, `:center`, `:justify`, `:center_block` | Alineación del texto |
-| `:bold`  | `true`/`false`                                            | Texto en negrita     |
-
-## 🔧 Funciones Especializadas (para casos avanzados)
-
-### Colorizar texto directamente
-
-```elixir
-# Solo aplicar color
-Aurora.colorize("texto", :primary) |> IO.puts()
-Aurora.colorize("error", "#FF0000") |> IO.puts()
-```
-
-### Efectos de texto
-
-```elixir
-# Un solo efecto
-Aurora.stylize("texto", :bold) |> IO.puts()
-
-# Múltiples efectos
-Aurora.stylize("texto", [:bold, :underline, :italic]) |> IO.puts()
-```
-
-### Gradientes de color
-
-```elixir
-# Generar gradiente de 6 colores
-colors = Aurora.gradient("#FF0000", "#00FF00")  # Rojo a verde
-
-# Gradiente personalizado
-colors = Aurora.gradient("#FF0000", "#0000FF", 10)  # 10 colores
-```
-
-### Trabajar con chunks (piezas de texto)
-
-```elixir
-# Crear chunk individual
-chunk = Aurora.chunk("texto", :primary)
-
-# Crear múltiples chunks
-chunks = Aurora.chunks([
-  {"Error:", :error},
-  {" Archivo no encontrado", :warning}
-])
-
-# Formatear lista de chunks
-Aurora.format_chunks(chunks)
-```
-
-### Utilidades básicas
-
-```elixir
-# Limpiar códigos ANSI de texto formateado
-text_limpio = Aurora.clean("\\e[31mTexto\\e[0m")
-
-# Obtener longitud real del texto (sin códigos ANSI)
-longitud = Aurora.text_length("\\e[31mHola\\e[0m")  # => 4
-```
-
-### Formateo de datos estructurados
-
-```elixir
-# JSON (acepta maps, strings, listas)
-data = %{name: "Juan", age: 25, active: true}
-Aurora.json(data) |> IO.puts()                            # Pretty print con colores
-Aurora.json(data, color: :success) |> IO.puts()           # JSON en verde
-Aurora.json(data, compact: true) |> IO.puts()             # Formato compacto
-Aurora.json(data, indent: true) |> IO.puts()              # Con indentación extra
-
-# Para funciones más avanzadas (tablas, badges, etc.) usar los módulos especializados
-# Ver sección "Uso Avanzado con Módulos" más abajo
-```
-
-## 📋 Colores Disponibles
-
-### Colores Principales
-
-| Color         | Nombre        | Hex     | Uso típico              |
-| ------------- | ------------- | ------- | ----------------------- |
-| `:primary`    | Azul claro    | #A1E7FA | Información principal   |
-| `:secondary`  | Verde azulado | #3AABA3 | Información secundaria  |
-| `:ternary`    | Naranja       | #FF8000 | Información terciaria   |
-| `:quaternary` | Púrpura       | #9B42E2 | Información cuaternaria |
-
-### Colores de Estado
-
-| Color      | Nombre     | Hex     | Uso típico           |
-| ---------- | ---------- | ------- | -------------------- |
-| `:success` | Verde lima | #97C53C | Operaciones exitosas |
-| `:warning` | Amarillo   | #FFCC00 | Advertencias         |
-| `:error`   | Rojo coral | #FF5B5B | Errores              |
-| `:info`    | Cyan       | #00FFFF | Información general  |
-| `:debug`   | Gris       | #B0B0B0 | Información de debug |
-
-### Colores Especiales
-
-| Color        | Nombre     | Hex     | Especial             |
-| ------------ | ---------- | ------- | -------------------- |
-| `:critical`  | Amarillo   | #FBFF00 | ⚠️ Invertido (fondo) |
-| `:alert`     | Amarillo   | #FBFF00 | ⚠️ Invertido (fondo) |
-| `:emergency` | Rojo       | #FF0000 | ⚠️ Invertido (fondo) |
-| `:happy`     | Rosa       | #EE80C3 | Mensajes positivos   |
-| `:notice`    | Azul claro | #5FD7FF | Notificaciones       |
-| `:menu`      | Azul suave | #ABCDF1 | Elementos de menú    |
-| `:no_color`  | Blanco     | #F8F8F2 | Sin color específico |
-
-### 🎨 Configuración Personalizada de Colores
-
-Puedes personalizar los colores predefinidos creando tu propia configuración en `config/config.exs`:
-
-```elixir
-# config/config.exs
-config :aurora, :colors,
-  colors: %{
-    no_color: %{name: :no_color, hex: "#F8F8F2"},
-    debug: %{name: :debug, hex: "#B0B0B0"},
-    primary: %{name: :primary, hex: "#A1E7FA"},
-    secondary: %{name: :secondary, hex: "#3AABA3"},
-    ternary: %{name: :ternary, hex: "#FF8000"},
-    quaternary: %{name: :quaternary, hex: "#9B42E2"},
-    success: %{name: :success, hex: "#97C53C"},
-    warning: %{name: :warning, hex: "#FFCC00"},
-    warn: %{name: :warning, hex: "#FFCC00"},
-    error: %{name: :error, hex: "#FF5B5B"},
-    info: %{name: :info, hex: "#00ffff"},
-    happy: %{name: :happy, hex: "#EE80C3"},
-    background: %{name: :background, hex: "#32302f"},
-    menu: %{name: :menu, hex: "#abcdf1"},
-    notice: %{name: :notice, hex: "#5FD7FF"},
-    critical: %{name: :critical, hex: "#fbff00", inverted: true},
-    alert: %{name: :alert, hex: "#fbff00", inverted: true},
-    emergency: %{name: :emergency, hex: "#FF0000", inverted: true}
+    primary: %{hex: "#0066CC"},     # Your primary color
+    error: %{hex: "#DC3545"},       # Your error color
+    success: %{hex: "#28A745"},     # Your success color
+    # ... more custom colors
   },
   gradients: %{
-    gradient_1: %{name: :gradient_1, hex: "#ff8000"},
-    gradient_2: %{name: :gradient_2, hex: "#ff9429"},
-    gradient_3: %{name: :gradient_3, hex: "#ffa952"},
-    gradient_4: %{name: :gradient_4, hex: "#ffbd7a"},
-    gradient_5: %{name: :gradient_5, hex: "#ffd2a3"},
-    gradient_6: %{name: :gradient_6, hex: "#ffe6cc"}
+    fire: [%{hex: "#FF0000"}, %{hex: "#FFA500"}, %{hex: "#FFFF00"}],
+    # ... more gradients
   }
 ```
 
-**Uso con colores personalizados:**
+## CLI Usage
 
-```elixir
-# Usar colores personalizados
-Aurora.format("Mensaje de marca", color: :brand)
-Aurora.format("Texto resaltado", color: :highlight)
-Aurora.format("Información secundaria", color: :muted)
+Aurora can be used as a command-line tool:
 
-# Los colores se aplican automáticamente
-Aurora.colorize("Gradiente fuego", :fire)
-```
-
-**Ejemplos de configuración:** Consulta el archivo [`config/config.exs.example`](config/config.exs.example) para ver un ejemplo completo de configuración con muchos colores personalizados.
-
-**Nota:** Si no se proporciona configuración, Aurora usará los colores predeterminados mostrados en la tabla.
-
-### 🔍 Consultar Colores Disponibles
-
-Puedes obtener dinámicamente todos los colores configurados:
-
-```elixir
-# Obtener todos los colores disponibles
-colores_disponibles = Aurora.colors()
-IO.inspect(colores_disponibles)
-
-# Verificar si un color específico existe
-color_existe = Map.has_key?(Aurora.colors(), :brand)
-
-# Obtener información detallada de un color
-info_color = Aurora.Color.get_color_info(:primary)
-IO.inspect(info_color)
-# => %Aurora.Structs.ColorInfo{name: :primary, hex: "#00FFFF", inverted: false}
-```
-
-## 🎨 Efectos Disponibles
-
-| Efecto           | Descripción        |
-| ---------------- | ------------------ |
-| `:bold`          | Texto en negrita   |
-| `:italic`        | Texto en cursiva   |
-| `:underline`     | Texto subrayado    |
-| `:dim`           | Texto atenuado     |
-| `:blink`         | Texto parpadeante  |
-| `:reverse`       | Colores invertidos |
-| `:strikethrough` | Texto tachado      |
-
-## 🏗️ Uso Avanzado con Módulos
-
-Para casos donde necesitas control total, usa los módulos especializados:
-
-### Tabla de Referencia Rápida - Módulos Especializados
-
-| Módulo             | Funciones principales                                | Uso principal                         |
-| ------------------ | ---------------------------------------------------- | ------------------------------------- |
-| `Aurora.Format`    | `format/1`, `clean_ansi/1`, `pretty_json/1`          | Formateo de texto y estructuras       |
-| `Aurora.Color`     | `get_color_info/1`, `apply_to_chunk/1`, `gradient/3` | Manejo de colores y gradientes        |
-| `Aurora.Effects`   | `apply_effect/2`, `apply_multiple_effects/2`         | Aplicación de efectos ANSI            |
-| `Aurora.Convert`   | `to_chunk/1`, `table?/1`, `normalize_table/1`        | Conversión y transformación de datos  |
-| `Aurora.Ensure`    | `string/1`, `integer/1`, `list/1`                    | Garantía de tipos con valores seguros |
-| `Aurora.Normalize` | `normalize_text/2`, `normalize_messages/1`           | Normalización de texto y estructuras  |
-
-### `Aurora.Format` - Control total del formateo
-
-```elixir
-# Crear estructura FormatInfo completa con nuevas opciones
-format_info = %Aurora.Structs.FormatInfo{
-  chunks: [
-    %Aurora.Structs.ChunkText{
-      text: "Título importante",
-      color: Aurora.Color.get_color_info(:primary),
-      effects: %Aurora.Structs.EffectInfo{bold: true, underline: true},
-      pos_x: 10,  # Posicionamiento horizontal preciso
-      pos_y: 5   # Posicionamiento vertical preciso
-    }
-  ],
-  align: :center_block,  # Nueva opción de alineación para tablas
-  manual_tabs: 2,
-  add_line: :both,
-  mode: :table  # Nuevo modo de renderizado para tablas
-}
-
-resultado = Aurora.Format.format(format_info)
-```
-
-### `Aurora.Color` - Manejo avanzado de colores
-
-```elixir
-# Obtener información de color
-color_info = Aurora.Color.get_color_info(:primary)
-
-# Trabajar con colores hex
-color_custom = Aurora.Color.get_color_info("#FF6B35")
-
-# Generar gradientes entre colores
-gradiente = Aurora.Color.generate_gradient_between("#FF0000", "#00FF00")
-
-# Obtener todos los colores disponibles
-colores = Aurora.Color.get_all_colors()
-```
-
-### `Aurora.Effects` - Control de efectos
-
-```elixir
-# Aplicar efecto individual
-texto = Aurora.Effects.apply_effect("texto", :bold)
-
-# Aplicar múltiples efectos
-texto = Aurora.Effects.apply_multiple_effects("texto", [:bold, :italic])
-
-# Aplicar efectos desde lista de opciones
-texto = Aurora.Effects.apply_effects("texto", [bold: true, italic: true])
-
-# Aplicar efectos desde EffectInfo
-effect_info = %Aurora.Structs.EffectInfo{bold: true, italic: true}
-texto = Aurora.Effects.apply_effect_info("texto", effect_info)
-
-# Aplicar efectos a ChunkText con posicionamiento
-chunk = %Aurora.Structs.ChunkText{
-  text: "texto",
-  effects: %Aurora.Structs.EffectInfo{bold: true, underline: true},
-  pos_x: 15,  # Posición horizontal
-  pos_y: 3   # Posición vertical
-}
-chunk_con_efectos = Aurora.Effects.apply_chunk_effects(chunk)
-```
-
-### 🎯 Nuevas Funcionalidades - Posicionamiento y Modos
-
-```elixir
-# Posicionamiento preciso de texto
-chunk_posicionado = %Aurora.Structs.ChunkText{
-  text: "Texto en coordenadas específicas",
-  color: Aurora.Color.get_color_info(:info),
-  pos_x: 20,  # Columna 20
-  pos_y: 10   # Línea 10
-}
-
-# Modos de renderizado diferentes
-format_tabla = %Aurora.Structs.FormatInfo{
-  chunks: [chunk_posicionado],
-  mode: :table,      # Optimizado para tablas
-  align: :center_block
-}
-
-format_raw = %Aurora.Structs.FormatInfo{
-  chunks: [chunk_posicionado],
-  mode: :raw,        # POSICIONAMIENTO ABSOLUTO - usa pos_x/pos_y para códigos ANSI \e[y;xH
-  align: :left
-}
-
-# Nuevas opciones de alineación
-format_justify = %Aurora.Structs.FormatInfo{
-  chunks: [chunk_posicionado],
-  align: :justify,   # Texto justificado
-  mode: :normal
-}
-
-# EJEMPLO ESPECÍFICO DEL MODO RAW - Posicionamiento absoluto
-chunk_cursor = %Aurora.Structs.ChunkText{
-  text: "🎯 Texto en posición exacta",
-  color: Aurora.Color.get_color_info(:success),
-  pos_x: 25,  # Columna 25
-  pos_y: 12   # Línea 12
-}
-
-# Al usar mode: :raw, Aurora generará: "\e[12;25H🎯 Texto en posición exacta"
-# Esto coloca el cursor en línea 12, columna 25 y luego imprime el texto
-format_raw_cursor = %Aurora.Structs.FormatInfo{
-  chunks: [chunk_cursor],
-  mode: :raw,
-  add_line: :none  # Sin saltos de línea adicionales para control preciso
-}
-```
-
-### `Aurora.Convert` - Utilidades de conversión
-
-```elixir
-# Convertir datos a chunks
-chunk = Aurora.Convert.to_chunk("texto")
-chunk = Aurora.Convert.to_chunk({"texto", :primary})
-
-# Verificar si datos forman tabla
-es_tabla = Aurora.Convert.table?([[1, 2], [3, 4]])
-
-# Normalizar tabla con alineación automática
-table_data = [["ID", "Nombre"], ["1", "Juan"], ["2", "María"]]
-normalized = Aurora.Convert.normalize_table(table_data)
-
-# Manipulación de claves en mapas
-data = %{"firstName" => "Juan", "lastName" => "Pérez"}
-atom_keys = Aurora.Convert.atomize_keys(data)  # %{firstName: "Juan", lastName: "Pérez"}
-string_keys = Aurora.Convert.stringify_keys(atom_keys)  # Vuelta a strings
-
-# Conversión de tipos con validación
-Aurora.Convert.cast("123", :integer)  # 123
-Aurora.Convert.cast("true", :boolean)  # true
-Aurora.Convert.cast("texto", :atom)    # :texto
-```
-
-### `Aurora.Ensure` - Garantía de tipos
-
-```elixir
-# Asegurar tipos específicos con valores por defecto seguros
-Aurora.Ensure.string(nil)        # ""
-Aurora.Ensure.string(123)        # "123"
-Aurora.Ensure.integer("42")      # 42
-Aurora.Ensure.integer("invalid") # 0
-
-# Asegurar listas y estructuras
-Aurora.Ensure.list(nil)          # []
-Aurora.Ensure.list("texto")      # ["texto"]
-Aurora.Ensure.map([a: 1, b: 2])  # %{a: 1, b: 2}
-
-# Asegurar chunks de texto válidos
-chunk = Aurora.Ensure.chunk_text("texto")
-chunk = Aurora.Ensure.chunk_text({"texto", :primary})
-
-# Conversión de listas con función de transformación
-Aurora.Ensure.list_of(["1", "2", "3"], :integer)  # [1, 2, 3]
-```
-
-### `Aurora.Normalize` - Normalización de datos
-
-```elixir
-# Normalización de texto
-Aurora.Normalize.normalize_text("ÑOÑO", :lower)  # "nono" (sin diacríticos)
-Aurora.Normalize.normalize_text("café", :upper)  # "CAFE"
-
-# Normalización de mensajes a chunks
-messages = [{"Error", :error}, {"Info", :info}, "Texto simple"]
-chunks = Aurora.Normalize.normalize_messages(messages)
-# => [%ChunkText{text: "Error", color: %ColorInfo{...}}, ...]
-
-# Normalización de tablas con padding automático
-table = [["ID", "Name"], ["1", "John"], ["2", "Jane"]]
-normalized_table = Aurora.Normalize.normalize_table(table)
-# Asegura que todas las filas tengan el mismo número de columnas
-# y aplica padding para alineación uniforme
-```
-
-## 🧪 Estructuras de Datos
-
-### `ChunkText` - Fragmento de texto formateado
-
-```elixir
-%Aurora.Structs.ChunkText{
-  text: "Mi texto",                    # Texto (requerido)
-  color: %ColorInfo{},                 # Color opcional
-  effects: %EffectInfo{},              # Efectos opcionales (integrado con Aurora.Effects)
-  pos_x: 0,                            # Posición horizontal (para renderizado preciso)
-  pos_y: 0                             # Posición vertical (para renderizado preciso)
-}
-```
-
-### `ColorInfo` - Información de color
-
-```elixir
-%Aurora.Structs.ColorInfo{
-  name: :primary,                      # Nombre del color
-  hex: "#00FFFF",                      # Código hexadecimal
-  inverted: false                      # Si está invertido
-}
-```
-
-### `FormatInfo` - Configuración completa de formato
-
-```elixir
-%Aurora.Structs.FormatInfo{
-  chunks: [%ChunkText{}],              # Lista de chunks (requerido)
-  default_color: %ColorInfo{},         # Color por defecto
-  align: :left,                        # Alineación (:left, :right, :center, :justify, :center_block)
-  manual_tabs: -1,                     # Indentación manual (-1 = automática)
-  add_line: :none,                     # Saltos de línea (:before, :after, :both, :none)
-  animation: "",                       # Prefijo de animación
-  mode: :normal                        # Modo de renderizado (:normal, :table, :raw)
-}
-```
-
-### `EffectInfo` - Efectos de texto
-
-```elixir
-%Aurora.Structs.EffectInfo{
-  bold: false,                         # Negrita
-  italic: false,                       # Cursiva
-  underline: false,                    # Subrayado
-  dim: false,                          # Atenuado
-  blink: false,                        # Parpadeante
-  reverse: false,                      # Invertido
-  hidden: false,                       # Oculto
-  strikethrough: false                 # Tachado
-}
-```
-
-## 🔧 Desarrollo y Calidad
-
-Aurora incluye aliases predefinidos para facilitar el desarrollo:
-
-```bash
-# Pipeline completa de calidad (deps, clean, compile, test, credo, dialyzer)
-mix quality
-
-# Pipeline CI/CD rápida (sin dialyzer)
-mix ci
-
-# Equivale a ejecutar manualmente:
-mix deps.get && mix clean && mix compile --warnings-as-errors && MIX_ENV=test mix test && mix credo --strict && mix dialyzer
-```
-
-### 🧪 Testing
-
-```bash
-# Ejecutar todos los tests
-mix test
-
-# Ejecutar solo doctests
-mix test --only doctest
-
-# Ejecutar tests con cobertura
-mix test --cover
-
-# Ejecutar tests excluyendo los deprecados
-mix test --exclude deprecated
-```
-
-## 📦 Dependencias
-
-- `:jason` - Para formateo de JSON (incluida automáticamente)
-
-## 🖥️ Uso como CLI
-
-Aurora puede usarse como herramienta de línea de comandos independiente.
-
-### Instalación del CLI
-
-Compila el ejecutable:
-
+### Build CLI
 ```bash
 mix escript.build
 ```
 
-Esto crea el archivo `aurora` que puedes ejecutar directamente o mover a tu PATH.
-
-### Modo Texto
-
-Formatea texto con colores y efectos:
-
+### Text Mode Examples
 ```bash
-# Texto simple con color
-./aurora --text="¡Hola mundo!" --color=primary --bold
+# Simple colored text
+./aurora --text="Hello World!" --color=primary --bold
 
-# Múltiples fragmentos con diferentes colores
-./aurora --text="Error: " --color=error --text="Archivo no encontrado" --color=warning
+# Multiple fragments with different colors
+./aurora --text="Error: " --color=error --text="File not found" --color=warning
 
-# Con efectos y manipulación de color
-./aurora --text="Advertencia" --color=warning --lighten=2 --italic
-
-# Color hexadecimal personalizado
-./aurora --text="Custom" --color=#FF6B35 --bold
+# With custom hex color
+./aurora --text="Custom" --color=#FF6B35 --italic
 ```
 
-### Modo Tabla
-
-Crea tablas formateadas:
-
+### Table Mode Examples
 ```bash
-# Tabla básica
-./aurora --table \
-  --headers="Nombre,Edad,Rol" \
-  --row="Juan,25,Desarrollador" \
-  --row="Ana,30,Diseñadora"
+# Basic table
+./aurora --table --headers="Name,Age" --row="John,25" --row="Ana,30"
 
-# Tabla con colores personalizados
-./aurora --table \
-  --headers="ID,Estado" \
-  --row="1,Activo" \
-  --row="2,Inactivo" \
-  --header-color=primary \
-  --row-color=success
+# Table with custom colors
+./aurora --table --headers="ID,Status" --row="1,Active" --row="2,Inactive" --header-color=primary --row-color=success
 ```
 
-### Opciones Disponibles
+## Utilities
 
-**Opciones de Texto:**
-- `--text=<texto>` - Texto a formatear (repetible)
-- `--color=<color>` - Color hex (#FF0000) o nombre (primary, error, etc.)
-- `--align=<tipo>` - Alineación: left, center, right, justify
-- `--add-line=<pos>` - Líneas extra: none, before, after, both
+### Text Processing
+```elixir
+# Clean ANSI codes from formatted text
+clean_text = Aurora.clean("\e[31mRed text\e[0m")  # "Red text"
 
-**Efectos:**
-- `--bold`, `--dim`, `--italic`, `--underline`
-- `--blink`, `--reverse`, `--strikethrough`
+# Get visible length (excluding ANSI codes)
+length = Aurora.text_length("\e[31mHello\e[0m")  # 5
 
-**Manipulación de Color:**
-- `--lighten=N` - Aclara el color N tonos (1-6)
-- `--darken=N` - Oscurece el color N tonos (1-6)
-- `--inverted` - Invierte el color (intercambia fondo/texto)
-
-**Tabla:**
-- `--table` - Activa modo tabla
-- `--headers=<csv>` - Cabeceras separadas por comas
-- `--row=<csv>` - Fila de datos (repetible)
-- `--header-color=<color>` - Color de cabeceras
-- `--row-color=<color>` - Color de filas
-
-**General:**
-- `--version`, `-v` - Muestra la versión
-- `--help`, `-h` - Muestra la ayuda
-
-### Salida del CLI
-
-El CLI devuelve el string con códigos ANSI sin interpretar:
-
-```bash
-# Guardar en variable bash
-result=$(./aurora --text="Éxito" --color=success --bold)
-echo "$result"
-
-# Usar en pipes
-./aurora --text="Error" --color=error | tee log.txt
-
-# Ver el string literal con códigos
-./aurora --text="Test" --color=primary
-# Salida: "\e[38;2;161;231;250m\e[1mTest\e[0m"
+# List available colors and effects
+colors = Aurora.colors()
+effects = Aurora.effects()
 ```
 
-## 📄 Licencia
+## Development
 
-MIT License - ¡Úsalo, mejóralo, compártelo!
+### Quality Checks
+```bash
+# Complete quality pipeline
+mix quality
 
----
+# Quick CI/CD pipeline (without dialyzer)
+mix ci
+```
 
-## 🤝 Contribuir
+### Testing
+```bash
+# Run all tests
+mix test
 
-¿Tienes ideas para hacer Aurora aún más genial? ¡Los PRs son bienvenidos! Asegúrate de:
+# Run only doctests
+mix test --only doctest
 
-1. Mantener la filosofía simple
-2. Agregar tests para nuevas funcionalidades
-3. Actualizar la documentación
-4. Hacer que todo sea súper fácil de usar
+# Run with coverage
+mix test --cover
+```
 
----
+## License
 
-**¡Disfruta haciendo tu terminal hermoso! 🎨✨**
+Apache 2.0 - See the [LICENSE](LICENSE) file for details.
