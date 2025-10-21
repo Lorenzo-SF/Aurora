@@ -402,9 +402,24 @@ defmodule Aurora.Color do
   @doc """
   Devuelve los gradientes configurados.
   """
-  @spec gradients() :: %{atom() => ColorInfo.t() | map()}
-  def gradients, do: @gradients_config
+  @spec gradients() :: %{atom() => [atom()]}
+  def gradients do
+    # Asegurar que devolvemos el mapa de gradientes directamente
+    @gradients_config
+  end
 
+  @doc """
+  Obtiene un gradiente específico por nombre.
+  """
+  @spec get_gradient(atom()) :: [ColorInfo.t()] | nil
+  def get_gradient(name) do
+    case Map.get(@gradients_config, name) do
+      nil -> nil
+      colors when is_list(colors) ->
+        Enum.map(colors, &to_color_info/1)
+      _ -> nil
+    end
+  end
   @doc """
   Busca color por nombre.
   """
@@ -455,6 +470,134 @@ defmodule Aurora.Color do
   end
 
   def expand_gradient(_), do: List.duplicate(get_default_color(), 6)
+
+
+  @doc """
+  Aplica un gradiente horizontal a un texto, similar a gterm.
+
+  Calcula colores intermedios entre los colores proporcionados y los distribuye
+  proporcionalmente a lo largo del texto.
+
+  ## Parámetros
+    - `text`: Texto al que aplicar el gradiente
+    - `colors`: Lista de 2 a 6 colores para el gradiente
+
+  ## Ejemplos
+      Aurora.Color.apply_gradient("Hello World", [:red, :blue])
+      Aurora.Color.apply_gradient("Gradient", ["#FF0000", "#00FF00", "#0000FF"])
+  """
+  @spec apply_gradient(String.t(), [any()]) :: String.t()
+  def apply_gradient(text, colors) when is_binary(text) and is_list(colors) and length(colors) >= 2 do
+    # Validar y limitar a máximo 6 colores como gterm
+    valid_colors = Enum.take(colors, 6)
+    color_infos = Enum.map(valid_colors, &to_color_info/1)
+
+    # Calcular colores del gradiente
+    gradient_colors = calculate_gradient_colors(color_infos, String.length(text))
+
+    # Aplicar colores carácter por carácter
+    apply_gradient_to_chars(text, gradient_colors)
+  end
+
+  def apply_gradient(text, _colors), do: text
+
+  @doc """
+  Aplica gradiente a un ChunkText, creando múltiples chunks con el gradiente aplicado.
+  """
+  @spec apply_gradient_to_chunk(ChunkText.t(), [any()]) :: [ChunkText.t()]
+  def apply_gradient_to_chunk(%ChunkText{} = chunk, colors) when is_list(colors) and length(colors) >= 2 do
+    text = chunk.text
+    valid_colors = Enum.take(colors, 6)
+    color_infos = Enum.map(valid_colors, &to_color_info/1)
+    gradient_colors = calculate_gradient_colors(color_infos, String.length(text))
+
+    # Crear chunks individuales para cada carácter con su color del gradiente
+    text
+    |> String.graphemes()
+    |> Enum.with_index()
+    |> Enum.map(fn {char, index} ->
+      color = Enum.at(gradient_colors, index)
+      %ChunkText{
+        text: char,
+        color: color,
+        pos_x: chunk.pos_x,
+        pos_y: chunk.pos_y,
+        effects: chunk.effects
+      }
+    end)
+  end
+
+  @doc """
+  Aplica gradiente a múltiples ChunkText.
+  """
+  @spec apply_gradient_to_chunks([ChunkText.t()], [any()]) :: [ChunkText.t()]
+  def apply_gradient_to_chunks(chunks, colors) when is_list(chunks) and is_list(colors) do
+    Enum.flat_map(chunks, fn chunk ->
+      if String.length(chunk.text) > 0 do
+        apply_gradient_to_chunk(chunk, colors)
+      else
+        [chunk]
+      end
+    end)
+  end
+
+  # ========== ALGORITMO DE GRADIENTE ==========
+
+  defp calculate_gradient_colors(color_infos, text_length) when length(color_infos) == 1 do
+    # Caso especial: un solo color
+    List.duplicate(hd(color_infos), text_length)
+  end
+
+  defp calculate_gradient_colors(color_infos, text_length) do
+    # Calcular segmentos del gradiente (similar a gterm)
+    segments = length(color_infos) - 1
+    segment_length = Float.ceil(text_length / segments)
+
+    # Generar colores para cada posición del texto
+    Enum.map(0..(text_length - 1), fn position ->
+      calculate_color_at_position(position, color_infos, segment_length, segments)
+    end)
+  end
+
+  defp calculate_color_at_position(position, color_infos, segment_length, segments) do
+    # Determinar en qué segmento estamos
+    segment_index = min(floor(position / segment_length), segments - 1)
+
+    # Colores de inicio y fin del segmento
+    start_color = Enum.at(color_infos, segment_index)
+    end_color = Enum.at(color_infos, segment_index + 1)
+
+    # Posición relativa dentro del segmento
+    segment_start = segment_index * segment_length
+    segment_position = position - segment_start
+    ratio = segment_position / segment_length
+
+    # Interpolar entre los dos colores
+    interpolate_colors(start_color, end_color, ratio)
+  end
+
+  defp interpolate_colors(start_color, end_color, ratio) do
+    {start_r, start_g, start_b} = start_color.rgb
+    {end_r, end_g, end_b} = end_color.rgb
+
+    r = round(start_r + (end_r - start_r) * ratio)
+    g = round(start_g + (end_g - start_g) * ratio)
+    b = round(start_b + (end_b - start_b) * ratio)
+
+    to_color_info({r, g, b})
+  end
+
+  defp apply_gradient_to_chars(text, gradient_colors) do
+    text
+    |> String.graphemes()
+    |> Enum.with_index()
+    |> Enum.map(fn {char, index} ->
+      color = Enum.at(gradient_colors, index)
+      apply_color(char, color)
+    end)
+    |> Enum.join()
+  end
+
 
   # ========== COMPATIBILIDAD CON CHUNKTEXT ==========
 
@@ -534,4 +677,8 @@ defmodule Aurora.Color do
         cmyk: rgb_to_cmyk(new_rgb)
     }
   end
+
+
+
+
 end
