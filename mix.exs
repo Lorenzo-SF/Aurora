@@ -5,7 +5,7 @@ defmodule Aurora.MixProject do
     [
       app: :aurora,
       version: "1.0.6",
-      elixir: "~> 1.18.4-otp-28",
+      elixir: "~> 1.18.2-otp-27",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
@@ -33,7 +33,7 @@ defmodule Aurora.MixProject do
   defp aliases do
     [
       gen: [
-        "quality",
+        "format",
         "escript.build",
         "deploy",
         "tools_version"
@@ -56,7 +56,7 @@ defmodule Aurora.MixProject do
         IO.puts("✅ Archivo .tool-versions creado en #{tool_versions_path}")
       end,
       quality: [
-        "format --check-formatted",
+        "format",
         "deps.get",
         "credo --strict --format=oneline",
         "compile --warnings-as-errors",

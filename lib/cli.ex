@@ -161,26 +161,22 @@ defmodule Aurora.CLI do
   end
 
   defp execute({opts, _remaining}) do
-    result =
-      cond do
-        Keyword.get(opts, :version, false) ->
-          version()
+    cond do
+      Keyword.get(opts, :version, false) ->
+        version()
 
-        Keyword.get(opts, :help, false) ->
-          show_help()
+      Keyword.get(opts, :help, false) ->
+        show_help()
 
-        Keyword.get(opts, :table, false) ->
-          execute_table(opts)
+      Keyword.get(opts, :table, false) ->
+        execute_table(opts)
 
-        has_text_flag?(opts) ->
-          execute_text_chunks(opts)
+      has_text_flag?(opts) ->
+        execute_text_chunks(opts)
 
-        true ->
-          show_help()
-      end
-
-    # Devolver el string literal con códigos ANSI sin interpretar
-    IO.puts(inspect(result))
+      true ->
+        show_help()
+    end
   end
 
   defp has_text_flag?(opts) do
@@ -491,10 +487,13 @@ defmodule Aurora.CLI do
       text: ~S"""
       # Basic text formatting
       aurora --text="Hello world" --color=primary --bold
+
       # Multiple text fragments
       aurora --text="Error: " --color=error --text="File not found" --color=warning
+
       # Table formatting
       aurora --table --headers="Name,Age" --row="John,25" --row="Jane,30"
+
       """,
       color: Color.to_color_info(:no_color)
     }
@@ -562,18 +561,25 @@ defmodule Aurora.CLI do
       text: ~S"""
       # Simple colored text
       $ aurora --text="Success!" --color=success --bold
+
       # Multiple fragments with different colors
       $ aurora --text="Error: " --color=error --text="File missing" --color=warning
+
       # Custom hex color with effects
       $ aurora --text="Custom" --color=#FF6B35 --italic --underline
+
       # Lighten a color
       $ aurora --text="Warning" --color=warning --lighten=2 --bold
+
       # Formatted table
       $ aurora --table --headers="Name,Age,Role" --row="John,25,Dev" --row="Jane,30,Lead"
+
       # Get version
       $ aurora --version
+
       # Show this help
       $ aurora --help
+
       """,
       color: Color.to_color_info(:success),
       effects: %EffectInfo{dim: true}
@@ -625,11 +631,13 @@ defmodule Aurora.CLI do
       footer
     ]
 
-    Format.format(%FormatInfo{
+    %FormatInfo{
       chunks: chunks,
       align: :left,
       add_line: :none
-    })
+    }
+    |> Format.format()
+    |> IO.write()
   end
 
   defp version do
@@ -641,6 +649,8 @@ defmodule Aurora.CLI do
       }
     ]
 
-    Format.format(%FormatInfo{chunks: version_chunks, align: :left, add_line: :none}) <> "\n"
+    %FormatInfo{chunks: version_chunks, align: :left, add_line: :none}
+    |> Format.format()
+    |> IO.write()
   end
 end

@@ -402,7 +402,7 @@ defmodule Aurora.Color do
   @doc """
   Devuelve los gradientes configurados.
   """
-  @spec gradients() :: %{atom() => [atom()]}
+  @spec gradients() :: %{atom() => ColorInfo.t() | map()}
   def gradients do
     # Asegurar que devolvemos el mapa de gradientes directamente
     @gradients_config
@@ -414,12 +414,17 @@ defmodule Aurora.Color do
   @spec get_gradient(atom()) :: [ColorInfo.t()] | nil
   def get_gradient(name) do
     case Map.get(@gradients_config, name) do
-      nil -> nil
+      nil ->
+        nil
+
       colors when is_list(colors) ->
         Enum.map(colors, &to_color_info/1)
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
+
   @doc """
   Busca color por nombre.
   """
@@ -471,7 +476,6 @@ defmodule Aurora.Color do
 
   def expand_gradient(_), do: List.duplicate(get_default_color(), 6)
 
-
   @doc """
   Aplica un gradiente horizontal a un texto, similar a gterm.
 
@@ -487,7 +491,8 @@ defmodule Aurora.Color do
       Aurora.Color.apply_gradient("Gradient", ["#FF0000", "#00FF00", "#0000FF"])
   """
   @spec apply_gradient(String.t(), [any()]) :: String.t()
-  def apply_gradient(text, colors) when is_binary(text) and is_list(colors) and length(colors) >= 2 do
+  def apply_gradient(text, colors)
+      when is_binary(text) and is_list(colors) and length(colors) >= 2 do
     # Validar y limitar a máximo 6 colores como gterm
     valid_colors = Enum.take(colors, 6)
     color_infos = Enum.map(valid_colors, &to_color_info/1)
@@ -505,7 +510,8 @@ defmodule Aurora.Color do
   Aplica gradiente a un ChunkText, creando múltiples chunks con el gradiente aplicado.
   """
   @spec apply_gradient_to_chunk(ChunkText.t(), [any()]) :: [ChunkText.t()]
-  def apply_gradient_to_chunk(%ChunkText{} = chunk, colors) when is_list(colors) and length(colors) >= 2 do
+  def apply_gradient_to_chunk(%ChunkText{} = chunk, colors)
+      when is_list(colors) and length(colors) >= 2 do
     text = chunk.text
     valid_colors = Enum.take(colors, 6)
     color_infos = Enum.map(valid_colors, &to_color_info/1)
@@ -517,6 +523,7 @@ defmodule Aurora.Color do
     |> Enum.with_index()
     |> Enum.map(fn {char, index} ->
       color = Enum.at(gradient_colors, index)
+
       %ChunkText{
         text: char,
         color: color,
@@ -591,13 +598,11 @@ defmodule Aurora.Color do
     text
     |> String.graphemes()
     |> Enum.with_index()
-    |> Enum.map(fn {char, index} ->
+    |> Enum.map_join(fn {char, index} ->
       color = Enum.at(gradient_colors, index)
       apply_color(char, color)
     end)
-    |> Enum.join()
   end
-
 
   # ========== COMPATIBILIDAD CON CHUNKTEXT ==========
 
@@ -677,8 +682,4 @@ defmodule Aurora.Color do
         cmyk: rgb_to_cmyk(new_rgb)
     }
   end
-
-
-
-
 end
