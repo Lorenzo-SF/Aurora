@@ -712,30 +712,30 @@ defmodule Aurora.CLI do
     examples = %ChunkText{
       text: ~S"""
       # Simple colored text
-      $ aurora --text="Success!" --color=success --bold
+      aurora --text="Success!" --color=success --bold
 
       # Multiple fragments with different colors
-      $ aurora --text="Error: " --color=error --text="File missing" --color=warning
+      aurora --text="Error: " --color=error --text="File missing" --color=warning
 
       # Custom hex color with effects
-      $ aurora --text="Custom" --color=#FF6B35 --italic --underline
+      aurora --text="Custom" --color=#FF6B35 --italic --underline
 
       # Lighten a color
-      $ aurora --text="Warning" --color=warning --lighten=2 --bold
+      aurora --text="Warning" --color=warning --lighten=2 --bold
 
       # Formatted table
-      $ aurora --table --headers="Name,Age,Role" --row="John,25,Dev" --row="Jane,30,Lead"
+      aurora --table --headers="Name,Age,Role" --row="John,25,Dev" --row="Jane,30,Lead"
 
       # Color conversion
-      $ aurora --convert --from="#FF0000" --to=rgb
-      $ aurora --convert --from="primary" --to=hsv
-      $ aurora --convert --from="{255,0,0}" --to=hex
+      aurora --convert --from="#FF0000" --to=rgb
+      aurora --convert --from="primary" --to=hsv
+      aurora --convert --from="{255,0,0}" --to=hex
 
       # Get version
-      $ aurora --version
+      aurora --version
 
       # Show this help
-      $ aurora --help
+      aurora --help
 
       """,
       color: safe_color(:success),
@@ -795,6 +795,7 @@ defmodule Aurora.CLI do
       add_line: :none
     }
     |> Format.format()
+    |> IO.write()
   end
 
   defp version do
