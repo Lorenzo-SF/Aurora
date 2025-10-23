@@ -340,6 +340,41 @@ defmodule Aurora.Effects do
     |> String.replace(~r/\e\[[0-9;]*m/, "")
   end
 
+  @doc """
+  Convierte una lista de efectos a EffectInfo.
+
+  ## Parámetros
+
+  - `effects` - Lista de átomos representando efectos
+
+  ## Ejemplos
+
+      iex> Aurora.Effects.to_effect_info([:bold, :italic])
+      %Aurora.Structs.EffectInfo{bold: true, italic: true}
+
+      iex> Aurora.Effects.to_effect_info([])
+      %Aurora.Structs.EffectInfo{}
+
+      iex> Aurora.Effects.to_effect_info([:bold, :invalid])
+      %Aurora.Structs.EffectInfo{bold: true}
+  """
+  @spec to_effect_info([atom()]) :: EffectInfo.t()
+  def to_effect_info(effects) when is_list(effects) do
+    # Crear EffectInfo base
+    base_effect_info = %EffectInfo{}
+
+    # Filtrar efectos válidos y aplicarlos
+    valid_effects = Enum.filter(effects, &valid_effect?/1)
+
+    # Convertir lista de efectos a keyword list con valores true
+    effect_updates = Enum.map(valid_effects, fn effect -> {effect, true} end)
+
+    # Aplicar las actualizaciones al struct
+    struct(base_effect_info, effect_updates)
+  end
+
+  def to_effect_info(_), do: %EffectInfo{}
+
   # Función privada para extraer efectos activos de EffectInfo
   @spec extract_active_effects(EffectInfo.t()) :: [atom()]
   defp extract_active_effects(%EffectInfo{} = effect_info) do

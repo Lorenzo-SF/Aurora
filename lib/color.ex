@@ -261,15 +261,20 @@ defmodule Aurora.Color do
   @doc """
   Convierte cualquier formato de color a ColorInfo detectando automáticamente el tipo.
 
-  ## Formatos soportados:
+  Aurora.Color es un conversor universal que puede recibir cualquier formato de color
+  y convertirlo a un ColorInfo completo con todos los formatos calculados.
+
+  ## Formatos soportados automáticamente:
     - Átomo: `:primary`, `:error`, etc.
     - Hexadecimal: `"#FF0000"`, `"#A1E7FA"`
-    - RGB: `{255, 0, 0}`
-    - ARGB: `{255, 255, 0, 0}`
-    - HSV: `{0.0, 1.0, 1.0}`
-    - HSL: `{0.0, 1.0, 0.5}`
-    - CMYK: `{0.0, 1.0, 1.0, 0.0}`
+    - RGB: `{255, 0, 0}` (valores enteros 0-255)
+    - ARGB: `{255, 255, 0, 0}` (valores enteros 0-255)
     - ColorInfo: `%ColorInfo{}`
+
+  Para formatos ambiguos (HSV, HSL, CMYK), usa las funciones específicas:
+  - `from_hsv/1` para colores HSV
+  - `from_hsl/1` para colores HSL
+  - `from_cmyk/1` para colores CMYK
 
   ## Ejemplos:
       iex> result = Aurora.Color.to_color_info(:primary)
@@ -315,23 +320,101 @@ defmodule Aurora.Color do
     create_color_info_from_rgb(rgb, hex: hex, argb: {a, r, g, b})
   end
 
-  def to_color_info({h, s, v}) when is_number(h) and is_number(s) and is_number(v) do
+  def to_color_info(_), do: get_default_color()
+
+  @doc """
+  Crea ColorInfo específicamente desde formato HSV.
+
+  ## Parámetros:
+    - h: Hue (0.0-360.0)
+    - s: Saturation (0.0-1.0)
+    - v: Value (0.0-1.0)
+  """
+  @spec from_hsv({number(), number(), number()}) :: ColorInfo.t()
+  def from_hsv({h, s, v}) when is_number(h) and is_number(s) and is_number(v) do
     rgb = hsv_to_rgb({h, s, v})
     create_color_info_from_rgb(rgb, hsv: {h, s, v})
   end
 
-  def to_color_info({h, s, l}) when is_number(h) and is_number(s) and is_number(l) do
+  @doc """
+  Crea ColorInfo específicamente desde formato HSL.
+
+  ## Parámetros:
+    - h: Hue (0.0-360.0)
+    - s: Saturation (0.0-1.0)
+    - l: Lightness (0.0-1.0)
+  """
+  @spec from_hsl({number(), number(), number()}) :: ColorInfo.t()
+  def from_hsl({h, s, l}) when is_number(h) and is_number(s) and is_number(l) do
     rgb = hsl_to_rgb({h, s, l})
     create_color_info_from_rgb(rgb, hsl: {h, s, l})
   end
 
-  def to_color_info({c, m, y, k})
+  @doc """
+  Crea ColorInfo específicamente desde formato CMYK.
+
+  ## Parámetros:
+    - c: Cyan (0.0-1.0)
+    - m: Magenta (0.0-1.0)
+    - y: Yellow (0.0-1.0)
+    - k: Key/Black (0.0-1.0)
+  """
+  @spec from_cmyk({number(), number(), number(), number()}) :: ColorInfo.t()
+  def from_cmyk({c, m, y, k})
       when is_number(c) and is_number(m) and is_number(y) and is_number(k) do
     rgb = cmyk_to_rgb({c, m, y, k})
     create_color_info_from_rgb(rgb, cmyk: {c, m, y, k})
   end
 
-  def to_color_info(_), do: get_default_color()
+  # ========== CONVERSIONES DIRECTAS ENTRE FORMATOS ==========
+
+  @doc """
+  Convierte cualquier formato de color a hexadecimal.
+  """
+  @spec to_hex(any()) :: String.t()
+  def to_hex(color) do
+    color |> to_color_info() |> Map.get(:hex)
+  end
+
+  @doc """
+  Convierte cualquier formato de color a RGB.
+  """
+  @spec to_rgb(any()) :: ColorInfo.rgb_tuple()
+  def to_rgb(color) do
+    color |> to_color_info() |> Map.get(:rgb)
+  end
+
+  @doc """
+  Convierte cualquier formato de color a ARGB.
+  """
+  @spec to_argb(any()) :: ColorInfo.argb_tuple()
+  def to_argb(color) do
+    color |> to_color_info() |> Map.get(:argb)
+  end
+
+  @doc """
+  Convierte cualquier formato de color a HSV.
+  """
+  @spec to_hsv(any()) :: ColorInfo.hsv_tuple()
+  def to_hsv(color) do
+    color |> to_color_info() |> Map.get(:hsv)
+  end
+
+  @doc """
+  Convierte cualquier formato de color a HSL.
+  """
+  @spec to_hsl(any()) :: ColorInfo.hsl_tuple()
+  def to_hsl(color) do
+    color |> to_color_info() |> Map.get(:hsl)
+  end
+
+  @doc """
+  Convierte cualquier formato de color a CMYK.
+  """
+  @spec to_cmyk(any()) :: ColorInfo.cmyk_tuple()
+  def to_cmyk(color) do
+    color |> to_color_info() |> Map.get(:cmyk)
+  end
 
   defp create_color_info_from_rgb(rgb, opts \\ []) do
     hex = Keyword.get(opts, :hex, rgb_to_hex(rgb))
@@ -371,12 +454,74 @@ defmodule Aurora.Color do
 
   @doc """
   Aplica color ANSI a texto.
+
+  ## Parámetros:
+    - text: Texto al que aplicar el color
+    - color: Cualquier formato de color soportado
+    - opts: Opciones adicionales
+
+  ## Opciones:
+    - `:inverted` - boolean, invierte el color (solo funciona en ANSI)
+    - `:background` - boolean, aplica como color de fondo
+
+  ## Ejemplos:
+      iex> Aurora.Color.apply_color("Hola", :primary)
+      "\\e[38;2;161;231;250mHola\\e[0m"
+
+      iex> Aurora.Color.apply_color("Hola", "#FF0000", inverted: true)
+      "\\e[7m\\e[38;2;255;0;0mHola\\e[0m"
   """
-  @spec apply_color(String.t(), any()) :: String.t()
-  def apply_color(text, color) do
+  @spec apply_color(String.t(), any(), keyword()) :: String.t()
+  def apply_color(text, color, opts \\ []) do
     color_info = to_color_info(color)
-    ansi_code = color_info_to_ansi(color_info)
+
+    # Aplicar inversión si se solicita
+    color_info =
+      if Keyword.get(opts, :inverted, false) do
+        %{color_info | inverted: true}
+      else
+        color_info
+      end
+
+    ansi_code =
+      if Keyword.get(opts, :background, false) do
+        color_info_to_background_ansi(color_info)
+      else
+        color_info_to_ansi(color_info)
+      end
+
     "#{ansi_code}#{text}\e[0m"
+  end
+
+  @doc """
+  Aplica color de fondo ANSI a texto.
+  """
+  @spec apply_background_color(String.t(), any(), keyword()) :: String.t()
+  def apply_background_color(text, color, opts \\ []) do
+    apply_color(text, color, Keyword.put(opts, :background, true))
+  end
+
+  @doc """
+  Aplica color invertido ANSI a texto.
+  """
+  @spec apply_inverted_color(String.t(), any()) :: String.t()
+  def apply_inverted_color(text, color) do
+    apply_color(text, color, inverted: true)
+  end
+
+  @doc """
+  Convierte ColorInfo a código ANSI para color de fondo.
+  """
+  @spec color_info_to_background_ansi(ColorInfo.t()) :: String.t()
+  def color_info_to_background_ansi(%ColorInfo{hex: hex, inverted: inverted}) do
+    {r, g, b} = hex_to_rgb(hex)
+    color_code = "\e[48;2;#{r};#{g};#{b}m"
+
+    if inverted do
+      "\e[7m#{color_code}"
+    else
+      color_code
+    end
   end
 
   # ========== GESTIÓN DE CONFIGURACIÓN ==========

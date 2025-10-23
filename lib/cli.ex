@@ -6,6 +6,17 @@ defmodule Aurora.CLI do
   It returns the literal string with escape codes without interpretation, perfect for
   capturing in bash variables or external processing.
 
+  ## New Features
+
+  ### Color Conversion
+  Convert colors between different formats:
+
+      ./aurora --convert --from="#FF0000" --to=rgb
+      ./aurora --convert --from="{255,0,0}" --to=hex
+      ./aurora --convert --from="primary" --to=hsv
+
+  Supported formats: hex, rgb, argb, hsv, hsl, cmyk
+
   ## Installation
 
   Build the executable:
@@ -29,6 +40,14 @@ defmodule Aurora.CLI do
 
       ./aurora --table --headers="Name,Age" --row="John,25" --row="Ana,30"
 
+  ### Color Conversion
+
+  Convert between color formats:
+
+      ./aurora --convert --from="#FF0000" --to=rgb
+      ./aurora --convert --from="primary" --to=hex
+      ./aurora --convert --from="{255,0,0}" --to=hsl
+
   ## Main Options
 
   **Text:**
@@ -46,6 +65,11 @@ defmodule Aurora.CLI do
   - `--darken=N` - Darken color N tones (1-6)
   - `--inverted` - Invert color (swap background/text)
 
+  **Color Conversion:**
+  - `--convert` - Enable color conversion mode
+  - `--from=<color>` - Source color in any supported format
+  - `--to=<format>` - Target format: hex, rgb, argb, hsv, hsl, cmyk
+
   **Table:**
   - `--table` - Enable table mode
   - `--headers=<csv>` - Headers separated by commas
@@ -62,7 +86,7 @@ defmodule Aurora.CLI do
   The CLI returns the string with ANSI codes without interpretation:
 
       result=$(./aurora --text="Success" --color=success --bold)
-      echo "$result"  # Shows the formatted text
+      echo "$result"  # Shows the formatted text with ANSI codes
 
   ## Examples
 
@@ -81,6 +105,11 @@ defmodule Aurora.CLI do
       # Custom hex color
       ./aurora --text="Custom" --color=#FF6B35 --bold
 
+      # Color conversion
+      ./aurora --convert --from="#FF0000" --to=rgb
+      ./aurora --convert --from="primary" --to=hsv
+      ./aurora --convert --from="{255,0,0}" --to=hex
+
       # Get version
       ./aurora --version
 
@@ -88,12 +117,11 @@ defmodule Aurora.CLI do
       ./aurora --help
   """
 
-  # Solo los aliases necesarios
   alias Aurora.{Color, Effects, Format}
   alias Aurora.Structs.{ChunkText, EffectInfo, FormatInfo}
 
   @app_name "Aurora"
-  @app_version "1.0.5"
+  @app_version "1.1.0"
 
   @doc """
   Main entry point for Aurora CLI commands.
@@ -102,6 +130,8 @@ defmodule Aurora.CLI do
     argv
     |> parse_args()
     |> execute()
+    |> String.replace("\e", "\\e")
+    |> IO.puts()
   end
 
   defp parse_args(argv) do
@@ -141,6 +171,11 @@ defmodule Aurora.CLI do
           darken: :integer,
           inverted: :boolean,
 
+          # Color conversion mode
+          convert: :boolean,
+          from: :string,
+          to: :string,
+
           # Global options
           version: :boolean,
           help: :boolean
@@ -168,6 +203,9 @@ defmodule Aurora.CLI do
       Keyword.get(opts, :help, false) ->
         show_help()
 
+      Keyword.get(opts, :convert, false) ->
+        execute_color_conversion(opts)
+
       Keyword.get(opts, :table, false) ->
         execute_table(opts)
 
@@ -181,6 +219,76 @@ defmodule Aurora.CLI do
 
   defp has_text_flag?(opts) do
     Keyword.has_key?(opts, :text)
+  end
+
+  # ========== COLOR CONVERSION MODE ==========
+
+  defp execute_color_conversion(opts) do
+    from_color = Keyword.get(opts, :from)
+    to_format = Keyword.get(opts, :to)
+
+    if is_nil(from_color) or is_nil(to_format) do
+      error_message("Color conversion requires --from and --to parameters")
+    else
+      convert_color(from_color, to_format)
+    end
+  end
+
+  defp convert_color(from_color, to_format) do
+    color_info = parse_color_input(from_color)
+
+    result =
+      case String.downcase(to_format) do
+        "hex" -> Color.to_hex(color_info)
+        "rgb" -> Color.to_rgb(color_info) |> inspect()
+        "argb" -> Color.to_argb(color_info) |> inspect()
+        "hsv" -> Color.to_hsv(color_info) |> inspect()
+        "hsl" -> Color.to_hsl(color_info) |> inspect()
+        "cmyk" -> Color.to_cmyk(color_info) |> inspect()
+        _ -> error_message("Unsupported target format: #{to_format}")
+      end
+
+    result
+  rescue
+    e -> error_message("Color conversion error: #{Exception.message(e)}")
+  end
+
+  defp parse_color_input(input) do
+    cond do
+      # Hex format
+      String.starts_with?(input, "#") ->
+        Color.to_color_info(input)
+
+      # RGB tuple format
+      String.starts_with?(input, "{") and String.ends_with?(input, "}") ->
+        {r, g, b} = parse_tuple(input)
+        Color.to_color_info({r, g, b})
+
+      # ARGB tuple format
+      String.starts_with?(input, "{") and
+          String.match?(input, ~r/{\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*\d+\s*}/) ->
+        {a, r, g, b} = parse_tuple(input)
+        Color.to_color_info({a, r, g, b})
+
+      # Color name
+      true ->
+        atom_color = String.to_atom(input)
+
+        case Color.find_by_name(atom_color) do
+          nil -> error_message("Color not found: #{input}")
+          color -> color
+        end
+    end
+  end
+
+  defp parse_tuple(tuple_str) do
+    tuple_str
+    |> String.trim_leading("{")
+    |> String.trim_trailing("}")
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
   end
 
   # ========== TEXT CHUNK MODE ==========
@@ -217,6 +325,7 @@ defmodule Aurora.CLI do
       mode: :normal
     }
 
+    # Return raw ANSI codes without any processing
     Format.format(format_info)
   end
 
@@ -247,7 +356,17 @@ defmodule Aurora.CLI do
       if String.starts_with?(color_str, "#") do
         Color.to_color_info(color_str)
       else
-        Color.to_color_info(String.to_atom(color_str))
+        # Verificar si el color existe antes de convertir a átomo
+        atom_color = String.to_atom(color_str)
+
+        case Color.find_by_name(atom_color) do
+          nil ->
+            # Color no encontrado, usar default
+            Color.get_default_color()
+
+          color ->
+            color
+        end
       end
 
     # Apply color manipulation if specified
@@ -330,6 +449,7 @@ defmodule Aurora.CLI do
       mode: :table
     }
 
+    # Return raw ANSI codes
     Format.format(format_info)
   end
 
@@ -361,12 +481,10 @@ defmodule Aurora.CLI do
          row_effects,
          cell_effects
        ) do
-    header_color_atom = String.to_atom(header_color)
-
     # Función auxiliar para obtener color de celda
     get_color = fn idx, default_color ->
       color_str = Enum.at(cell_colors, idx, default_color)
-      String.to_atom(color_str || default_color)
+      resolve_chunk_color(color_str, nil, nil, false)
     end
 
     # Función auxiliar para obtener efectos de celda
@@ -380,7 +498,7 @@ defmodule Aurora.CLI do
       |> Enum.map(fn {header, idx} ->
         %ChunkText{
           text: header,
-          color: Color.to_color_info(header_color_atom),
+          color: resolve_chunk_color(header_color, nil, nil, false),
           effects: get_effects.(idx, header_effects)
         }
       end)
@@ -392,7 +510,7 @@ defmodule Aurora.CLI do
         |> Enum.map(fn {cell, idx} ->
           %ChunkText{
             text: cell,
-            color: Color.to_color_info(get_color.(idx, row_color)),
+            color: get_color.(idx, row_color),
             effects: get_effects.(idx, row_effects)
           }
         end)
@@ -447,13 +565,32 @@ defmodule Aurora.CLI do
   defp apply_effect(:link, acc), do: %{acc | link: true}
   defp apply_effect(_, acc), do: acc
 
+  defp error_message(message) do
+    # Create error message with red color
+    error_chunk = %ChunkText{
+      text: "Error: #{message}",
+      color: Color.to_color_info("#FF0000"),
+      effects: %EffectInfo{bold: true}
+    }
+
+    %FormatInfo{chunks: [error_chunk]}
+    |> Format.format()
+  end
+
+  defp safe_color(color_name) do
+    case Color.find_by_name(color_name) do
+      nil -> Color.get_default_color()
+      color -> color
+    end
+  end
+
   defp show_help do
     # Banner
     title = %ChunkText{
       text: ~S"""
-      🌈 AURORA CLI
+      🌈 AURORA CLI v#{@app_version}
       """,
-      color: Color.to_color_info(:primary),
+      color: safe_color(:primary),
       effects: %EffectInfo{bold: true}
     }
 
@@ -461,7 +598,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       Format terminal text with colors and ANSI effects
       """,
-      color: Color.to_color_info(:secondary),
+      color: safe_color(:secondary),
       effects: %EffectInfo{italic: true}
     }
 
@@ -470,7 +607,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       Transform your boring terminal into a colorful experience
       """,
-      color: Color.to_color_info(:info),
+      color: safe_color(:info),
       effects: %EffectInfo{dim: true}
     }
 
@@ -479,7 +616,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       📘 USAGE
       """,
-      color: Color.to_color_info(:info),
+      color: safe_color(:info),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
@@ -494,8 +631,12 @@ defmodule Aurora.CLI do
       # Table formatting
       aurora --table --headers="Name,Age" --row="John,25" --row="Jane,30"
 
+      # Color conversion
+      aurora --convert --from="#FF0000" --to=rgb
+      aurora --convert --from="primary" --to=hsv
+
       """,
-      color: Color.to_color_info(:no_color)
+      color: safe_color(:no_color)
     }
 
     # Options section
@@ -503,7 +644,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       ⚙️  OPTIONS
       """,
-      color: Color.to_color_info(:success),
+      color: safe_color(:success),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
@@ -517,7 +658,7 @@ defmodule Aurora.CLI do
         --add-line=<pos>     Add newlines: before, after, both, none
       EFFECTS: --bold, --dim, --italic, --underline, --blink, --reverse, --strikethrough
       """,
-      color: Color.to_color_info(:ternary)
+      color: safe_color(:ternary)
     }
 
     # Color manipulation options
@@ -528,7 +669,18 @@ defmodule Aurora.CLI do
         --darken=<n>         Darken color by N tones (1-6)
         --inverted           Invert foreground/background colors
       """,
-      color: Color.to_color_info(:ternary)
+      color: safe_color(:ternary)
+    }
+
+    # Color conversion options
+    color_conv_options = %ChunkText{
+      text: ~S"""
+      COLOR CONVERSION:
+        --convert            Enable color conversion mode
+        --from=<color>       Source color (hex, name, or tuple)
+        --to=<format>        Target format: hex, rgb, argb, hsv, hsl, cmyk
+      """,
+      color: safe_color(:ternary)
     }
 
     # Table options
@@ -545,7 +697,7 @@ defmodule Aurora.CLI do
         --cell-color         Color for individual cells (repeatable)
         --cell-effects       Effects for individual cells (repeatable)
       """,
-      color: Color.to_color_info(:menu)
+      color: safe_color(:menu)
     }
 
     # Quick examples
@@ -553,7 +705,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       ✨ QUICK EXAMPLES
       """,
-      color: Color.to_color_info(:primary),
+      color: safe_color(:primary),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
@@ -574,6 +726,11 @@ defmodule Aurora.CLI do
       # Formatted table
       $ aurora --table --headers="Name,Age,Role" --row="John,25,Dev" --row="Jane,30,Lead"
 
+      # Color conversion
+      $ aurora --convert --from="#FF0000" --to=rgb
+      $ aurora --convert --from="primary" --to=hsv
+      $ aurora --convert --from="{255,0,0}" --to=hex
+
       # Get version
       $ aurora --version
 
@@ -581,7 +738,7 @@ defmodule Aurora.CLI do
       $ aurora --help
 
       """,
-      color: Color.to_color_info(:success),
+      color: safe_color(:success),
       effects: %EffectInfo{dim: true}
     }
 
@@ -590,7 +747,7 @@ defmodule Aurora.CLI do
       text: ~S"""
       🎨 AVAILABLE COLORS
       """,
-      color: Color.to_color_info(:warning),
+      color: safe_color(:warning),
       effects: %EffectInfo{bold: true, underline: true}
     }
 
@@ -600,7 +757,7 @@ defmodule Aurora.CLI do
       Status: success, warning, error, info, debug
       Special: critical, alert, emergency, happy, notice, menu, no_color
       """,
-      color: Color.to_color_info(:secondary)
+      color: safe_color(:secondary)
     }
 
     # Footer
@@ -609,7 +766,7 @@ defmodule Aurora.CLI do
       💡 Pro tip: Use $(aurora --text="your text" --color=primary) to capture output in variables
       📖 More info: https://github.com/lorenzo-sf/aurora
       """,
-      color: Color.to_color_info(:info),
+      color: safe_color(:info),
       effects: %EffectInfo{italic: true}
     }
 
@@ -623,6 +780,7 @@ defmodule Aurora.CLI do
       options_title,
       text_options,
       color_manip_options,
+      color_conv_options,
       table_options,
       examples_title,
       examples,
@@ -637,20 +795,18 @@ defmodule Aurora.CLI do
       add_line: :none
     }
     |> Format.format()
-    |> IO.write()
   end
 
   defp version do
     version_chunks = [
       %ChunkText{
         text: "#{@app_name} v#{@app_version}",
-        color: Color.to_color_info(:primary),
+        color: safe_color(:primary),
         effects: %EffectInfo{bold: true}
       }
     ]
 
     %FormatInfo{chunks: version_chunks, align: :left, add_line: :none}
     |> Format.format()
-    |> IO.write()
   end
 end
