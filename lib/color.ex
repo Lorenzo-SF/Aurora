@@ -700,7 +700,7 @@ defmodule Aurora.Color do
     List.duplicate(hd(color_infos), text_length)
   end
 
-  defp calculate_gradient_colors(color_infos, text_length) do
+  defp calculate_gradient_colors(color_infos, text_length) when text_length > 0 do
     # Calcular segmentos del gradiente (similar a gterm)
     segments = length(color_infos) - 1
     segment_length = Float.ceil(text_length / segments)
@@ -711,7 +711,10 @@ defmodule Aurora.Color do
     end)
   end
 
-  defp calculate_color_at_position(position, color_infos, segment_length, segments) do
+  # Caso especial para texto vacío
+  defp calculate_gradient_colors(_color_infos, 0), do: []
+
+  defp calculate_color_at_position(position, color_infos, segment_length, segments) when segment_length > 0 do
     # Determinar en qué segmento estamos
     segment_index = min(floor(position / segment_length), segments - 1)
 
@@ -726,6 +729,12 @@ defmodule Aurora.Color do
 
     # Interpolar entre los dos colores
     interpolate_colors(start_color, end_color, ratio)
+  end
+
+  # Caso especial para segment_length = 0
+  defp calculate_color_at_position(_position, color_infos, 0, _segments) do
+    # Retornar el primer color si no hay segmentos válidos
+    hd(color_infos)
   end
 
   defp interpolate_colors(start_color, end_color, ratio) do

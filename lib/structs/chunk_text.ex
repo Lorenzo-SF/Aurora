@@ -69,3 +69,25 @@ defmodule Aurora.Structs.ChunkText do
           pos_y: integer()
         }
 end
+
+# Implement String.Chars protocol to convert ChunkText to string
+defimpl String.Chars, for: Aurora.Structs.ChunkText do
+  @doc """
+  Converts a ChunkText struct to its text representation.
+
+  This implementation extracts the text field from the ChunkText struct,
+  allowing it to be used in contexts that expect strings.
+
+  ## Examples
+
+      chunk = %Aurora.Structs.ChunkText{text: "Hello world"}
+      to_string(chunk)  # "Hello world"
+
+      chunk_with_color = %Aurora.Structs.ChunkText{
+        text: "Colored text",
+        color: :primary
+      }
+      to_string(chunk_with_color)  # "Colored text"
+  """
+  def to_string(%Aurora.Structs.ChunkText{text: text}), do: text
+end
